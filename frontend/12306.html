@@ -1,0 +1,2778 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <script src="./train-data.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中国铁路12306 - 官方购票平台</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft Yahei", sans-serif;
+    }
+
+    /* 全局样式 - 调整页面间距和背景 */
+    body {
+      background-color: #f5f5f5;
+      padding: 20px 0;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 15px;
+    }
+
+    /* 顶部导航栏 - 优化布局和适配 */
+    .header {
+      background-color: #fff;
+      border-bottom: 2px solid #d92121; /* 增加红色下边框，贴近官方风格 */
+      margin-bottom: 30px;
+    }
+    .header-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+    }
+    .logo {
+      font-size: 28px;
+      color: #d92121;
+      font-weight: bold;
+    }
+    .nav {
+      display: flex;
+      gap: 30px;
+    }
+    .nav-item {
+      text-decoration: none;
+      color: #333;
+      font-size: 16px;
+      padding: 5px 0;
+      cursor: pointer;
+      position: relative;
+    }
+    .nav-item.active {
+      color: #d92121;
+    }
+    .nav-item.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background-color: #d92121;
+    }
+    .user-info {
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* 页面容器 - 调整卡片样式和位置 */
+    .page-container {
+      min-height: 500px;
+    }
+    .page {
+      display: none;
+      background-color: #fff;
+      border-radius: 4px; /* 官方卡片圆角更小 */
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .page.active {
+      display: block;
+    }
+    .page-title {
+      font-size: 20px;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* 1. 车票预订页面 - 核心布局优化 */
+    .search-form {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px 15px; /* 调整行列间距 */
+      margin-bottom: 20px;
+    }
+    .form-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .form-item label {
+      font-size: 14px;
+      color: #666;
+    }
+    .form-item input, .form-item select {
+      height: 40px;
+      padding: 0 10px;
+      border: 1px solid #ccc;
+      border-radius: 2px; /* 官方输入框圆角更小 */
+      font-size: 16px;
+    }
+    .form-item input:focus, .form-item select:focus {
+      outline: none;
+      border-color: #d92121;
+    }
+    .search-btn {
+      grid-column: 1 / -1;
+      height: 45px;
+      background-color: #d92121;
+      color: #fff;
+      border: none;
+      border-radius: 2px;
+      font-size: 18px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .search-btn:hover {
+      background-color: #b91c1c;
+    }
+    .train-list {
+      margin-top: 20px;
+      border: 1px solid #eee; /* 给列表加边框，更清晰 */
+      border-radius: 4px;
+    }
+    .list-header {
+      display: grid;
+      grid-template-columns: 1fr 2fr 2fr 1fr 1fr 1fr 1fr;
+      background-color: #f8f8f8;
+      padding: 10px;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 1px solid #eee;
+    }
+    .train-item {
+      display: grid;
+      grid-template-columns: 1fr 2fr 2fr 1fr 1fr 1fr 1fr;
+      padding: 15px 10px;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+    .train-item:hover {
+      background-color: #fafafa;
+    }
+    /* 将最后一列（操作）内容靠右对齐，按钮靠右并增加右侧间距 */
+    .list-header > div:last-child {
+      text-align: right;
+      padding-right: 22px;
+    }
+    .train-item > div:last-child {
+      justify-self: end;
+      padding-right: 12px;
+    }
+    .train-number {
+      font-weight: bold;
+      color: #d92121;
+    }
+    .ticket-btn {
+      padding: 8px 14px;
+      background: linear-gradient(180deg,#ff4b4b,#d92121);
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      box-shadow: 0 6px 18px rgba(217,33,33,0.18);
+      transition: transform .12s ease, box-shadow .12s ease;
+    }
+    .ticket-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 26px rgba(217,33,33,0.22);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 50px;
+      color: #999;
+      font-size: 16px;
+    }
+
+    /* 2. 订单查询页面（复用部分样式） */
+    .order-search-form {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px 15px;
+      margin-bottom: 20px;
+    }
+    .order-list {
+      margin-top: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    .order-header {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr;
+      background-color: #f8f8f8;
+      padding: 10px;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 1px solid #eee;
+    }
+    .order-item {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr 1fr 1fr 1fr;
+      padding: 15px 10px;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+    .order-item:hover {
+      background-color: #fafafa;
+    }
+    .order-status {
+      color: #d92121;
+      font-weight: bold;
+    }
+    .order-btn {
+      padding: 3px 8px;
+      border: 1px solid #d92121;
+      color: #d92121;
+      background-color: #fff;
+      border-radius: 2px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .order-btn:hover {
+      background-color: #fef0f0;
+    }
+
+    /* 3. 我的12306页面（复用部分样式） */
+    .user-center {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 20px;
+    }
+    .user-sidebar {
+      background-color: #f8f8f8;
+      border-radius: 4px;
+      padding: 20px;
+    }
+    .user-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #d92121;
+      margin: 0 auto 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 30px;
+    }
+    .user-avatar img { width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
+    /* Avatar upload controls */
+    #avatarInput { display: none; }
+    .avatar-controls { display:flex; gap:8px; align-items:center; }
+    .avatar-upload-btn { background: linear-gradient(180deg,#1976d2,#0d47a1); color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; box-shadow:0 8px 18px rgba(13,71,161,0.12); }
+    .avatar-upload-btn:hover { transform: translateY(-2px); }
+    .avatar-remove-btn { background:#fff; border:1px solid #e0e0e0; padding:8px 12px; border-radius:8px; color:#d92121; cursor:pointer; }
+    .avatar-preview-small { width:40px; height:40px; border-radius:50%; overflow:hidden; border:1px solid #eee; display:inline-block; }
+    .user-name {
+      text-align: center;
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+    .user-menu {
+      list-style: none;
+    }
+    .user-menu-item {
+      padding: 10px 0;
+      color: #333;
+      cursor: pointer;
+      border-left: 2px solid transparent;
+      padding-left: 10px;
+    }
+    .user-menu-item.active {
+      color: #d92121;
+      border-left: 2px solid #d92121;
+      background-color: #fff;
+    }
+    .user-content {
+      padding: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    /* 在个人中心的卡片之间增加空行效果 */
+    .user-panel { margin-bottom: 24px; }
+    .passenger-list {
+      margin-top: 20px;
+      border: 1px solid #eee;
+      border-radius: 4px;
+    }
+    .passenger-item {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      padding: 15px 10px;
+      border-bottom: 1px solid #eee;
+      align-items: center;
+    }
+    .passenger-header {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+      background-color: #f8f8f8;
+      padding: 10px;
+      font-weight: bold;
+      color: #333;
+      border-bottom: 1px solid #eee;
+    }
+
+    /* 4. 购票指南页面（复用部分样式） */
+    .guide-content {
+      line-height: 2;
+      color: #666;
+    }
+    .guide-section {
+      margin-bottom: 30px;
+    }
+    .guide-section h3 {
+      color: #d92121;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .guide-section ul {
+      padding-left: 20px;
+    }
+
+
+    /* ========== 核心：媒体查询（响应式适配） ========== */
+    /* 平板屏幕（≤992px） */
+    @media (max-width: 992px) {
+      .header-inner {
+        flex-direction: column;
+        gap: 10px;
+      }
+      .nav {
+        gap: 20px;
+      }
+      .user-center {
+        grid-template-columns: 150px 1fr;
+      }
+    }
+
+    /* 手机大屏幕（≤768px） */
+    @media (max-width: 768px) {
+      /* 导航栏改为纵向 */
+      .nav {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+      }
+      /* 查询表单改为2列 */
+      .search-form, .order-search-form {
+        grid-template-columns: 1fr 1fr;
+      }
+      /* 车次/订单列表隐藏次要列 */
+      .list-header, .train-item {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
+      }
+      .order-header, .order-item {
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 5px;
+      }
+      /* 隐藏的列 */
+      .list-header > div:nth-child(4), .list-header > div:nth-child(5), 
+      .list-header > div:nth-child(6), .list-header > div:nth-child(7),
+      .train-item > div:nth-child(4), .train-item > div:nth-child(5), 
+      .train-item > div:nth-child(6), .train-item > div:nth-child(7),
+      .order-header > div:nth-child(4), .order-header > div:nth-child(5), 
+      .order-header > div:nth-child(6),
+      .order-item > div:nth-child(4), .order-item > div:nth-child(5), 
+      .order-item > div:nth-child(6) {
+        display: none;
+      }
+      /* 个人中心改为纵向 */
+      .user-center {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* 手机小屏幕（≤576px） */
+    @media (max-width: 576px) {
+      /* 查询表单改为1列 */
+      .search-form, .order-search-form {
+        grid-template-columns: 1fr;
+      }
+      /* 列表头部文字缩小 */
+      .list-header, .order-header, .passenger-header {
+        font-size: 14px;
+      }
+      /* 车次/订单项文字缩小 */
+      .train-item, .order-item, .passenger-item {
+        font-size: 14px;
+      }
+    }
+    /* 订票弹窗美化样式 */
+    .modal-backdrop {
+      position: fixed; left: 0; top: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45); z-index: 2500; display: none;
+    }
+    #bookingModal {
+      width: 480px; max-width: calc(100% - 40px); border-radius: 10px;
+      padding: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    #bookingTrainInfo { font-weight:600; color:#222; background:#fff7f7; padding:8px 10px; border-radius:6px; border:1px solid #ffecec; }
+    .payment-options label { cursor:pointer; padding:6px 10px; border-radius:6px; border:1px solid #eee; background:#fafafa; }
+    .payment-options input { margin-right:6px; }
+    /* Apple Pay 图标放大样式 */
+    .pay-icon.apple { font-size: 24px; margin-right: 6px; vertical-align: middle; display: inline-block; }
+    /* 支付绑定卡片样式美化 */
+    #boundList > div, #unboundList > div {
+      padding: 12px; border-radius: 8px; margin-bottom: 10px; display:flex; align-items:center; justify-content:space-between; box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+    }
+    #boundList > div { border: 1px solid rgba(0,0,0,0.06); background: linear-gradient(180deg,#ffffff,#fbfffe); }
+    #unboundList > div { border: 1px dashed rgba(0,0,0,0.04); background: #fcfdff; }
+    #boundList .unbind-btn { background:#fff; border:1px solid #d92121; color:#d92121; padding:6px 10px; border-radius:8px; }
+    #unboundList .bind-btn { background: linear-gradient(180deg,#1976d2,#0d47a1); color:#fff; border:none; padding:8px 12px; border-radius:8px; }
+    #boundList div .meta { color:#666; font-size:13px; margin-top:4px; }
+    /* 绑定/解绑按钮美化 */
+    .bind-btn {
+      background: linear-gradient(180deg,#00c853,#009624);
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 18px rgba(0,200,83,0.14);
+      transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+    }
+    .bind-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0,200,83,0.18); }
+    .unbind-btn {
+      background: #fff;
+      color: #d92121;
+      border: 1px solid #d92121;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background .12s ease, color .12s ease;
+    }
+    .unbind-btn:hover { background: #fff6f6; }
+    /* 支付绑定卡片美化 */
+    #boundList > div, #unboundList > div { padding: 10px; border-radius: 8px; }
+    #boundList > div { border: 1px solid #e8f5e9; background: linear-gradient(180deg,#f9fff9,#ffffff); }
+    #unboundList > div { border: 1px dashed #eee; background: #fafafa; }
+    #bookingConfirmBtn { background: linear-gradient(180deg,#2e7d32,#1b5e20); color:#fff; border-radius:6px; padding:8px 14px; box-shadow:0 8px 18px rgba(30,100,40,0.18); }
+    /* 银行选择按钮样式 */
+    .bank-btn { padding:8px 10px; border-radius:6px; border:1px solid #ddd; background:#fff; cursor:pointer; }
+    .bank-btn.selected { background:#1976d2; color:#fff; border-color:#1565c0; box-shadow:0 6px 14px rgba(21,101,192,0.12); }
+    /* Apple 绑定模态样式小优化 */
+    #appleBindModal { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; }
+    /* Apple 风格授权按钮 */
+    .apple-auth-btn { background:#000; color:#fff; padding:10px 16px; border-radius:12px; border:none; font-weight:600; box-shadow:0 6px 18px rgba(0,0,0,0.18); cursor:pointer; }
+    .apple-auth-btn:hover { opacity:0.95; }
+    /* 解绑确认模态样式 */
+    #unbindConfirmModal { display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:360px; background:#fff; padding:18px; border-radius:10px; box-shadow:0 20px 40px rgba(0,0,0,0.2); z-index:3800; text-align:center; }
+    #unbindConfirmModal .confirm-btn { background:#d92121; color:#fff; padding:8px 12px; border-radius:8px; border:none; }
+    #unbindConfirmModal .cancel-btn { background:#fff; color:#333; border:1px solid #ddd; padding:6px 10px; border-radius:8px; }
+    #bookingCancelBtn { padding:7px 12px; border-radius:6px; }
+    @media (max-width: 600px) {
+      #bookingModal { width: 92%; padding:12px; }
+      .ticket-btn { padding: 6px 10px; font-size:13px; }
+    }
+    /* 调整席别选择比例与字体，使选项比例更合理、占位为灰色不可选 */
+    #booking_seat_select {
+      display: inline-block;
+      transform: scaleX(1) scaleY(1.3);
+      transform-origin: left center;
+      height: 42px;
+      width: 100%;
+      font-size: 20px;
+      line-height: 1.2;
+      padding: 6px 8px;
+    }
+    @media (max-width: 600px) {
+      /* 小屏幕上回退到更保守的缩放，防止布局错位 */
+      #booking_seat_select { transform: scaleX(1) scaleY(1.2); font-size:18px; height:40px; }
+    }
+    /* 强制 option 字体大小与占位色（部分浏览器需如此） */
+    #booking_seat_select option { font-size: 20px; color: #333; }
+    #booking_seat_select option[disabled] { color: #999; }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航
+  <div class="header">
+    <div class="container header-inner">
+      <div class="logo">中国铁路12306</div>
+      <div class="nav">
+      <div class="nav-item active" data-page="ticket-page">车票预订</div>
+      <div class="nav-item" data-page="order-page">订单查询</div>
+      <div class="nav-item" data-page="user-page">我的12306</div>
+      <div class="nav-item" data-page="payment-page">支付绑定</div>
+      <div class="nav-item" data-page="guide-page">购票指南</div>
+    </div>
+      <div class="user-info">未登录 | 请登录</div>
+    </div>
+  </div> -->
+
+  <!-- 顶部导航（修改user-info部分） -->
+<div class="header">
+  <div class="container header-inner">
+    <div class="logo">中国铁路12306</div>
+    <div class="nav">
+      <div class="nav-item active" data-page="ticket-page">车票预订</div>
+      <div class="nav-item" data-page="order-page">订单查询</div>
+      <div class="nav-item" data-page="user-page">我的12306</div>
+      <div class="nav-item" data-page="payment-page">支付绑定</div>
+      <div class="nav-item" data-page="guide-page">购票指南</div>
+    </div>
+    <!-- 修改为可点击的登录按钮 -->
+    <div class="user-info">
+      <span id="loginLink" style="color: #d92121; cursor: pointer; font-weight: bold;">请登录</span>
+    </div>
+            </div>
+            <!-- 绑定：Apple 授权模态 -->
+            <div id="appleBindModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:360px; background:linear-gradient(180deg,#f6f6f8,#ffffff); padding:18px; border-radius:16px; box-shadow:0 30px 60px rgba(0,0,0,0.22); z-index:3700; text-align:center; border:1px solid rgba(0,0,0,0.06);">
+              <div style="font-size:44px; font-weight:700; color:#000; margin-bottom:6px;"></div>
+              <div style="font-size:20px; font-weight:700;">使用 Apple ID 授权</div>
+              <div style="color:#666; margin-top:8px;">将 Apple Pay 与此设备关联以便快速支付。点击“授权并绑定”继续。</div>
+              <div style="margin-top:18px; display:flex; gap:10px; justify-content:center;">
+                <button id="appleBindConfirm" class="apple-auth-btn">授权并绑定</button>
+                <button id="appleBindCancel" class="order-btn">取消</button>
+              </div>
+            </div>
+
+            <!-- 绑定：银联绑定模态（银行选择在上方，使用按钮） -->
+            <div id="unionBindModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); width:420px; background:#fff; padding:18px; border-radius:10px; box-shadow:0 20px 40px rgba(0,0,0,0.18); z-index:3700; text-align:left;">
+              <h4 style="margin:0 0 8px 0;">绑定银行卡（银联）</h4>
+              <div style="color:#666; font-size:13px; margin-bottom:8px;">请选择开户银行</div>
+              <div id="unionBanks" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+                <button class="bank-btn" data-bank="中国银行">中国银行</button>
+                <button class="bank-btn" data-bank="浦发银行">浦发银行</button>
+                <button class="bank-btn" data-bank="工商银行">工商银行</button>
+                <button class="bank-btn" data-bank="建设银行">建设银行</button>
+                <button class="bank-btn" data-bank="招商银行">招商银行</button>
+                <button class="bank-btn" data-bank="其他银行">其他银行</button>
+              </div>
+              <div id="unionOtherBankWrap" style="display:none; margin-bottom:8px;"><label style="display:block; color:#666; font-size:13px;">请填写银行名称</label><input id="unionOtherBank" placeholder="请输入银行名称" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" /></div>
+              <div style="margin-bottom:8px;"><label style="display:block; color:#666; font-size:13px;">卡号</label><input id="unionBindCard" placeholder="请输入银行卡号" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" /></div>
+              <div style="margin-bottom:8px;"><label style="display:block; color:#666; font-size:13px;">请输入银行卡密码</label><input id="unionBindPwd" placeholder="银行卡支付密码" type="password" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:6px;" /></div>
+              <div style="text-align:right; display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+                <button id="unionBindConfirm" class="order-btn">绑定并保存</button>
+                <button id="unionBindCancel" class="order-btn">取消</button>
+              </div>
+            </div>
+            <!-- 解绑确认模态 -->
+            <div id="unbindConfirmModal">
+              <div style="font-size:16px; font-weight:600; margin-bottom:8px;">确认解绑</div>
+              <div id="unbindConfirmMsg" style="color:#666; margin-bottom:12px;">确定要解绑该支付方式吗？</div>
+              <div style="display:flex; gap:8px; justify-content:center;">
+                <button id="unbindConfirmBtn" class="confirm-btn">确认解绑</button>
+                <button id="unbindCancelBtn" class="cancel-btn">取消</button>
+              </div>
+            </div>
+            <!-- 订票弹窗：选择席别与支付方式 -->
+            <div id="bookingBackdrop" class="modal-backdrop"></div>
+            <div id="bookingModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(1.0); transform-origin:center; background:#fff; padding:18px; box-shadow:0 6px 18px rgba(0,0,0,0.25); border-radius:8px; z-index:3000; width:70%; max-width:480px;">
+              <h4 style="margin-bottom:10px;">确认预订</h4>
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <div id="bookingTrainInfo" style="color:#333; font-size:14px;"></div>
+                  <div id="bookingWaitHint" style="color:#d92121; font-size:13px; margin-top:6px; display:none;">候补订单无需立即在线支付，请等待有票后系统通知您继续支付。</div>
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>选择席别</span>
+                </label>
+                <select id="booking_seat_select" style="height:40px; padding:0 12px; font-size:14px; width:100%; border-radius:6px;">
+                  <option value="" disabled selected>请选择席别</option>
+                  <option value="一等座">一等座</option>
+                  <option value="二等座">二等座</option>
+                </select>
+                <label>乘客</label>
+                <select id="booking_passenger_select" style="height:36px; padding:0 10px; font-size:14px; width:100%; border-radius:6px;">
+                  <option value="" disabled selected>请选择乘客（本人或常用乘车人）</option>
+                </select>
+                <label>支付方式</label>
+                <div class="payment-options" style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <label><input type="radio" name="booking_payment" value="wechat" checked> 🟢 微信支付</label>
+                  <label><input type="radio" name="booking_payment" value="alipay"> 🔵 支付宝</label>
+                  <label><input type="radio" name="booking_payment" value="apple_pay"> <span class="pay-icon apple"></span> Apple Pay</label>
+                  <label><input type="radio" name="booking_payment" value="unionpay"> 🔴 银联</label>
+                  <label><input type="radio" name="booking_payment" value="other"> ⚪ 其他</label>
+                </div>
+                <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:6px;">
+                  <button id="bookingCancelBtn" class="order-btn" style="background:#fff; color:#d92121;">取消</button>
+                  <button id="bookingConfirmBtn" class="search-btn">确认并支付</button>
+                </div>
+              </div>
+            </div>
+            <div id="paymentBackdrop" class="modal-backdrop" style="display:none;"></div>
+            <!-- 支付二维码模态（微信/支付宝） -->
+            <div id="qrPaymentModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border-radius:8px; z-index:3600; width:320px; text-align:center;">
+              <h4 id="qrPaymentTitle">扫码支付</h4>
+              <div id="qrBox" style="width:220px; height:220px; margin:12px auto; display:flex; align-items:center; justify-content:center; border:4px solid #4caf50; border-radius:8px;">
+                <div id="qrPlaceholder" style="font-size:14px; color:#666;">[二维码]</div>
+              </div>
+              <div style="margin-top:8px;">请使用对应应用扫码支付 ¥<span id="qrPrice">0.00</span></div>
+              <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+                <button id="qrPaidBtn" class="bind-btn">我已完成支付</button>
+                <button id="qrCancelBtn" class="order-btn">取消</button>
+              </div>
+            </div>
+
+            <!-- Apple Pay 模拟模态 -->
+            <div id="applePayModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#f8f8f8; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border-radius:12px; z-index:3600; width:360px; text-align:center;">
+              <h4 style="margin:0 0 8px 0;">Apple Pay</h4>
+              <div style="background:#fff; padding:14px; border-radius:8px;">
+                <div style="font-size:18px; font-weight:600;">使用 Apple Pay 支付</div>
+                <div style="color:#666; margin-top:8px;">请使用您的设备完成指纹/面容验证以支付 ¥<span id="applePayPrice">0.00</span></div>
+                <div style="margin-top:12px;"> 
+                  <button id="appleConfirmBtn" class="bind-btn">验证并支付</button>
+                  <button id="appleCancelBtn" class="order-btn">取消</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 银联银行卡密码模态（用于支付） -->
+            <div id="unionPayModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border-radius:8px; z-index:3600; width:360px; text-align:left;">
+              <h4 style="margin-bottom:8px;">银联支付</h4>
+              <div style="margin-bottom:8px;">卡号：<span id="unionCardNo">5773882334</span></div>
+              <div style="margin-bottom:8px;"><label>请输入银行卡支付密码： <input id="unionPayPwd" type="password" style="padding:6px; width:60%;" /></label></div>
+              <div style="text-align:right; display:flex; gap:8px; justify-content:flex-end;">
+                <button id="unionConfirmBtn" class="bind-btn">确认支付</button>
+                <button id="unionCancelBtn" class="order-btn">取消</button>
+              </div>
+            </div>
+</div>
+
+<!-- 新增跳转JS（放在原12306.html的<script>标签里） -->
+<script>
+  // 点击“请登录”跳转到login.html
+  document.getElementById('loginLink').addEventListener('click', function() {
+    window.location.href = './login.html'; // 跳转到frontend下的login.html
+  });
+</script>
+<script>
+  // 使用网络时间设置出发日期（优先使用 worldtimeapi.org），失败时回退到本地时间
+  document.addEventListener('DOMContentLoaded', async function setNetworkTrainDate(){
+    const el = document.getElementById('trainDate');
+    if (!el) return;
+    // 先使用本地时间立即填充，避免后续验证失败或 UI 显示为占位暗色
+    try {
+      const now = new Date();
+      el.value = now.toISOString().slice(0,10);
+    } catch (e) {}
+    try {
+      const resp = await fetch('https://worldtimeapi.org/api/ip');
+      if (!resp.ok) throw new Error('网络时间请求失败');
+      const j = await resp.json();
+      const dt = new Date(j.utc_datetime || j.datetime || (j.unixtime? j.unixtime*1000: undefined));
+      if (isNaN(dt)) throw new Error('解析网络时间失败');
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,'0');
+      const d = String(dt.getDate()).padStart(2,'0');
+      el.value = `${y}-${m}-${d}`;
+    } catch (e) {
+      // 回退到本地时间
+      const now = new Date();
+      el.value = now.toISOString().slice(0,10);
+    }
+  });
+</script>
+<script>
+  // 使用网络时间设置订单查询日期（优先网络，失败回退本地），立即填充本地时间避免为空
+  document.addEventListener('DOMContentLoaded', async function setNetworkOrderDate(){
+    const el = document.getElementById('orderDate');
+    if (!el) return;
+    try { el.value = new Date().toISOString().slice(0,10); } catch(e) {}
+    try {
+      const resp = await fetch('https://worldtimeapi.org/api/ip');
+      if (!resp.ok) throw new Error('网络时间失败');
+      const j = await resp.json();
+      const dt = new Date(j.utc_datetime || j.datetime || (j.unixtime? j.unixtime*1000: undefined));
+      if (!isNaN(dt)) {
+        const y = dt.getFullYear(); const m = String(dt.getMonth()+1).padStart(2,'0'); const d = String(dt.getDate()).padStart(2,'0');
+        el.value = `${y}-${m}-${d}`;
+      }
+    } catch (e) {
+      // 已经使用本地时间作为回退
+    }
+  });
+</script>
+    <!-- 订单详情模态框 -->
+    <div id="orderDetailBackdrop" class="modal-backdrop" style="display:none;"></div>
+    <div id="orderDetailModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,0.25); border-radius:8px; z-index:3500; width:520px;">
+      <h4 style="margin-bottom:10px;">订单详情</h4>
+      <div id="orderDetailContent" style="display:flex; flex-direction:column; gap:8px; color:#333;">
+        <div><strong>订单号：</strong><span id="od_order_no"></span></div>
+        <div><strong>车次：</strong><span id="od_train_no"></span></div>
+        <div><strong>行程：</strong><span id="od_route"></span></div>
+        <div><strong>发车时间：</strong><span id="od_depart_time"></span></div>
+        <div><strong>席别：</strong><span id="od_seat_type"></span></div>
+        <div><strong>价格：</strong>¥<span id="od_price"></span></div>
+        <div><strong>支付方式：</strong><span id="od_payment"></span></div>
+        <div><strong>状态：</strong><span id="od_status" style="color:#d92121;"></span></div>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:12px;">
+        <button id="orderRePay" class="bind-btn">重新支付</button>
+        <button id="orderRefund" class="unbind-btn">退款</button>
+        <button id="orderCancelWait" class="order-btn" style="display:none; background:#ff8a65; color:#fff;">取消候补</button>
+        <button id="orderDownload" class="order-btn">下载凭证</button>
+        <button id="orderDetailClose" class="order-btn">关闭</button>
+      </div>
+    </div>
+    <!-- 改签弹窗 -->
+    <div id="rescheduleModal" style="display:none; position:fixed; left:0; top:0; right:0; bottom:0; background:rgba(0,0,0,0.4); align-items:center; justify-content:center; z-index:2000;">
+      <div style="width:420px; background:#fff; padding:18px; border-radius:10px; box-shadow:0 8px 30px rgba(0,0,0,0.12);">
+        <h3 style="margin:0 0 10px 0;">改签订单</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label>原订单号： <span id="res_old_order_no"></span></label>
+          </div>
+          <div>
+            <label>新车次/行程（请选择）：</label>
+            <div id="res_new_train_list" style="width:100%; padding:6px; display:flex; flex-direction:column; gap:8px; max-height:240px; overflow:auto; border:1px solid #eee; border-radius:6px;"></div>
+          </div>
+          <div>
+            <label>新发车时间：</label>
+            <input type="datetime-local" id="res_new_depart" style="width:100%; padding:8px;" />
+          </div>
+          <div>
+            <label>新票价（元）：</label>
+            <input type="number" id="res_new_price" min="0" step="0.01" style="width:100%; padding:8px;" />
+          </div>
+          <div>
+            <label>席别：</label>
+            <input type="text" id="res_new_seat" placeholder="硬座/二等座等" style="width:100%; padding:8px;" />
+          </div>
+          <div id="res_diff_display" style="color:#333; font-weight:600;">差价：-</div>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button id="resCancelBtn" class="order-btn" style="background:#fff; color:#d92121;">取消</button>
+            <button id="resConfirmBtn" class="search-btn">确认改签</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      function showOrderDetail(orderNo) {
+        const list = window._lastOrders || [];
+        const rec = list.find(o => String(o.order_no) === String(orderNo));
+        if (!rec) { alert('未能找到该订单的详细信息'); return; }
+        document.getElementById('od_order_no').textContent = rec.order_no || '';
+        document.getElementById('od_train_no').textContent = rec.train_no || '';
+        document.getElementById('od_route').textContent = (rec.start_city || '') + ' → ' + (rec.end_city || '');
+        document.getElementById('od_depart_time').textContent = rec.depart_time || '';
+        document.getElementById('od_seat_type').textContent = rec.seat_type || '';
+        document.getElementById('od_price').textContent = (Number(rec.price) || 0).toFixed(2);
+        document.getElementById('od_payment').textContent = rec.payment_method || '';
+        document.getElementById('od_status').textContent = rec.status || '';
+          // 若为候补订单，则隐藏/禁用与支付相关的操作按钮
+          try {
+            const rePayBtn = document.getElementById('orderRePay');
+            const refundBtn = document.getElementById('orderRefund');
+            if (rec.status === 'waitlist') {
+              if (rePayBtn) { rePayBtn.style.display = 'none'; }
+              if (refundBtn) { refundBtn.style.display = 'none'; }
+              try { document.getElementById('orderCancelWait').style.display = ''; } catch(e) {}
+            } else {
+              if (rePayBtn) { rePayBtn.style.display = ''; }
+              // 仅当已支付时显示退款按钮
+              if (refundBtn) { refundBtn.style.display = (rec.status === 'paid') ? '' : 'none'; }
+              try { document.getElementById('orderCancelWait').style.display = 'none'; } catch(e) {}
+            }
+          } catch (e) {}
+          document.getElementById('orderDetailModal').style.display = 'block';
+          document.getElementById('orderDetailBackdrop').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+      }
+      document.getElementById('orderDetailClose').addEventListener('click', function(){ document.getElementById('orderDetailModal').style.display='none'; document.getElementById('orderDetailBackdrop').style.display='none'; document.body.style.overflow=''; });
+      // 点遮罩也关闭
+      document.getElementById('orderDetailBackdrop').addEventListener('click', function(){ document.getElementById('orderDetailClose').click(); });
+
+      // 重新支付 - 将订单标记为 paid（调用后端）
+      document.getElementById('orderRePay').addEventListener('click', async function(){
+        const orderNo = document.getElementById('od_order_no').textContent;
+        if (!orderNo) return alert('找不到订单号');
+        if (!confirm('确认重新支付并将订单标记为已支付吗？')) return;
+        try {
+          const resp = await fetch('http://localhost:3000/api/orders/pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_no: orderNo }) });
+          const r = await resp.json();
+          if (r.code === 0) {
+            alert('已标记为已支付');
+            // 更新详情显示与列表
+            document.getElementById('od_status').textContent = r.data.status || 'paid';
+            if (typeof loadOrders === 'function') loadOrders();
+            // update local cache
+            if (window._lastOrders) {
+              const idx = window._lastOrders.findIndex(o => String(o.order_no) === String(orderNo));
+              if (idx >= 0) window._lastOrders[idx] = r.data;
+            }
+          } else {
+            alert('操作失败：' + (r.msg || '未知错误'));
+          }
+        } catch (err) { console.error(err); alert('请求失败，请检查后端服务'); }
+      });
+
+      // 退款 - 无条件退款（后端已提供接口）
+      document.getElementById('orderRefund').addEventListener('click', async function(){
+        const orderNo = document.getElementById('od_order_no').textContent;
+        if (!orderNo) return alert('找不到订单号');
+        if (!confirm('确定要对该订单发起退款吗？（当前为无条件退款）')) return;
+        try {
+          const resp = await fetch('http://localhost:3000/api/orders/refund', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_no: orderNo }) });
+          const r = await resp.json();
+          if (r.code === 0) {
+            alert('退款成功（已将订单状态更新为 refunded）');
+            document.getElementById('od_status').textContent = r.data.status || 'refunded';
+            if (typeof loadOrders === 'function') loadOrders();
+            if (window._lastOrders) {
+              const idx = window._lastOrders.findIndex(o => String(o.order_no) === String(orderNo));
+              if (idx >= 0) window._lastOrders[idx] = r.data;
+            }
+          } else {
+            alert('退款失败：' + (r.msg || '未知错误'));
+          }
+        } catch (err) { console.error(err); alert('请求失败，请检查后端服务'); }
+      });
+
+      // 取消候补（仅针对 waitlist）
+      document.getElementById('orderCancelWait').addEventListener('click', async function(){
+        const orderNo = document.getElementById('od_order_no').textContent;
+        if (!orderNo) return alert('找不到订单号');
+        if (!confirm('确定取消该候补订单吗？取消后不可恢复。')) return;
+        try {
+          const resp = await fetch('http://localhost:3000/api/orders/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ order_no: orderNo }) });
+          const r = await resp.json();
+          if (r.code === 0) {
+            alert('候补订单已取消');
+            document.getElementById('od_status').textContent = r.data.status || 'cancelled';
+            // 隐藏相关按钮
+            try { document.getElementById('orderCancelWait').style.display = 'none'; } catch(e) {}
+            if (typeof loadOrders === 'function') loadOrders();
+          } else {
+            alert('取消失败：' + (r.msg || '未知错误'));
+          }
+        } catch (err) { console.error(err); alert('请求失败，请检查后端服务'); }
+      });
+
+      // 下载凭证（生成简单文本并下载）
+      document.getElementById('orderDownload').addEventListener('click', function(){
+        const orderNo = document.getElementById('od_order_no').textContent || '';
+        const trainNo = document.getElementById('od_train_no').textContent || '';
+        const route = document.getElementById('od_route').textContent || '';
+        const depart = document.getElementById('od_depart_time').textContent || '';
+        const seat = document.getElementById('od_seat_type').textContent || '';
+        const price = document.getElementById('od_price').textContent || '';
+        const payment = document.getElementById('od_payment').textContent || '';
+        const status = document.getElementById('od_status').textContent || '';
+        const content = `订单号：${orderNo}\n车次：${trainNo}\n行程：${route}\n发车时间：${depart}\n席别：${seat}\n价格：¥${price}\n支付方式：${payment}\n状态：${status}\n\n感谢您使用12306模拟系统！`;
+        const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `order_${orderNo}.txt`;
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
+    </script>
+  <script>
+    // 支付绑定页面逻辑（使用 localStorage 模拟绑定状态）
+    (function() {
+      const methods = ['wechat','alipay','unionpay','apple_pay','other'];
+      const displayNames = { wechat:'微信支付', alipay:'支付宝', unionpay:'银联', apple_pay:'Apple Pay', other:'其他' };
+      const displayIcons = { wechat:'🟢', alipay:'🔵', unionpay:'🔴', apple_pay:'<span class="pay-icon apple"></span>', other:'⚪' };
+
+      // 使用模态表单绑定支付方式（提供更真实的体验）
+      function loadBindings() {
+        const raw = localStorage.getItem('paymentBindings');
+        let map = {};
+        try { map = raw ? JSON.parse(raw) : {}; } catch(e){ map = {}; }
+        const boundList = document.getElementById('boundList');
+        const unboundList = document.getElementById('unboundList');
+        if (!boundList || !unboundList) return;
+        boundList.innerHTML = '';
+        unboundList.innerHTML = '';
+        methods.forEach(m => {
+          const info = map[m];
+            if (info && info.account) {
+              const el = document.createElement('div');
+              el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='12px'; el.style.borderRadius='8px'; el.style.background='#fff';
+              const boundAtStr = info.boundAt ? (new Date(info.boundAt)).toLocaleString() : '';
+              el.innerHTML = `<div><strong>${displayIcons[m]} ${displayNames[m]}</strong><div style="color:#777; font-size:13px; margin-top:6px;">${info.account}</div><div class="meta" style="color:#999; font-size:12px; margin-top:6px;">绑定时间：${boundAtStr}</div></div><div><button data-method="${m}" class="order-btn unbind-btn">解绑</button></div>`;
+              boundList.appendChild(el);
+            } else {
+              const el = document.createElement('div');
+              el.style.display='flex'; el.style.justifyContent='space-between'; el.style.alignItems='center'; el.style.padding='12px'; el.style.border='1px dashed #eee'; el.style.borderRadius='8px'; el.style.background='#fafafa';
+              el.innerHTML = `<div><strong>${displayIcons[m]} ${displayNames[m]}</strong><div style="color:#999; font-size:13px; margin-top:6px;">未绑定</div></div><div><button data-method="${m}" class="search-btn bind-btn">绑定</button></div>`;
+              unboundList.appendChild(el);
+            }
+        });
+
+        // 绑定事件：使用模态表单而非 prompt
+        // 仅为带有 data-method 的绑定按钮注册处理（避免与支付/其他绑定类按钮冲突）
+        document.querySelectorAll('.bind-btn[data-method]').forEach(b => b.addEventListener('click', function(){
+          const m = this.dataset.method;
+          // 微信/支付宝：手机号绑定（如果已认证则填充）
+          if (m === 'wechat' || m === 'alipay') {
+            const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || {};
+            if (!loginUser || !loginUser.phone) {
+              if (confirm('绑定支付需要先完成身份认证，是否前往个人中心认证？')) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                document.querySelector('[data-page="user-page"]').classList.add('active');
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById('user-page').classList.add('active');
+                try { document.querySelector('.user-menu-item[data-menu="info"]').click(); } catch(e) {}
+              }
+              return;
+            }
+            const acc = prompt(`绑定${displayNames[m]}（手机号）:`, loginUser.phone || '');
+            if (!acc) return;
+            const raw2 = localStorage.getItem('paymentBindings'); let map2 = {}; try { map2 = raw2?JSON.parse(raw2):{} } catch(e) { map2 = {}; }
+            map2[m] = { account: acc, boundAt: Date.now() };
+            localStorage.setItem('paymentBindings', JSON.stringify(map2));
+            loadBindings();
+            return;
+          }
+
+          // Apple Pay：使用专门的绑定模态
+          if (m === 'apple_pay') {
+            // 打开 Apple 绑定模态
+            const mod = document.getElementById('appleBindModal'); if (mod) mod.style.display = 'block';
+            // 标记待绑定方法
+            window._pendingBindMethod = 'apple_pay';
+            return;
+          }
+
+          // 银联：打开银联绑定模态（选择银行在卡号之上，使用按钮选择）
+          if (m === 'unionpay') {
+            const mod = document.getElementById('unionBindModal'); if (mod) mod.style.display = 'block';
+            window._pendingBindMethod = 'unionpay';
+            // 预填示例卡号
+            try { document.getElementById('unionBindCard').value = '5773882334'; } catch(e) {}
+            // 清除上次选择
+            try { document.querySelectorAll('#unionBindModal .bank-btn').forEach(b=>b.classList.remove('selected')); } catch(e) {}
+            return;
+          }
+
+          // 其他方式：简单 prompt
+          const accOther = prompt(`请输入要绑定的${displayNames[m]}账号：`);
+          if (!accOther) return;
+          const raw3 = localStorage.getItem('paymentBindings'); let map3 = {}; try { map3 = raw3?JSON.parse(raw3):{} } catch(e) { map3 = {}; }
+          map3[m] = { account: accOther, boundAt: Date.now() };
+          localStorage.setItem('paymentBindings', JSON.stringify(map3));
+          loadBindings();
+        }));
+
+        document.querySelectorAll('.unbind-btn[data-method]').forEach(b => b.addEventListener('click', function(){
+          const m = this.dataset.method;
+          window._pendingUnbindMethod = m;
+          const display = displayNames[m] || m;
+          const msgEl = document.getElementById('unbindConfirmMsg');
+          if (msgEl) msgEl.textContent = `确定要解绑 ${display} 吗？`;
+          const mod = document.getElementById('unbindConfirmModal'); if (mod) mod.style.display = 'block';
+        }));
+      }
+
+      // 当切换到支付绑定页时加载
+        document.querySelectorAll('.nav-item').forEach(n => n.addEventListener('click', function(){ if (this.getAttribute('data-page')==='payment-page') { setTimeout(loadBindings,100); } }));
+      // 若初始即在支付页则加载一次
+        setTimeout(()=>{ const p=document.getElementById('payment-page'); if (p && p.classList.contains('active')) loadBindings(); },200);
+
+      // 绑定模态的交互处理（Apple 与 银联）
+      // Apple 绑定：授权并保存
+      document.getElementById('appleBindConfirm').addEventListener('click', function(){
+        const raw = localStorage.getItem('paymentBindings'); let map = {}; try { map = raw?JSON.parse(raw):{} } catch(e) { map = {}; }
+        map['apple_pay'] = { account: 'AppleID@example.com', boundAt: Date.now() };
+        localStorage.setItem('paymentBindings', JSON.stringify(map));
+        document.getElementById('appleBindModal').style.display = 'none';
+        loadBindings();
+      });
+      document.getElementById('appleBindCancel').addEventListener('click', function(){ document.getElementById('appleBindModal').style.display='none'; });
+
+      // 银联绑定模态：银行选择按钮
+      document.querySelectorAll('#unionBindModal .bank-btn').forEach(b => {
+        b.addEventListener('click', function(){
+          document.querySelectorAll('#unionBindModal .bank-btn').forEach(x=>x.classList.remove('selected'));
+          this.classList.add('selected');
+          // 如果选择了“其他银行”，显示输入框
+          try {
+            const otherWrap = document.getElementById('unionOtherBankWrap');
+            if (this.dataset.bank === '其他银行') { if (otherWrap) otherWrap.style.display = 'block'; }
+            else { if (otherWrap) otherWrap.style.display = 'none'; }
+          } catch(e) {}
+        });
+      });
+      document.getElementById('unionBindCancel').addEventListener('click', function(){ document.getElementById('unionBindModal').style.display='none'; });
+      document.getElementById('unionBindConfirm').addEventListener('click', function(){
+        const card = (document.getElementById('unionBindCard')||{}).value || '';
+        const pwd = (document.getElementById('unionBindPwd')||{}).value || '';
+        const bankBtn = document.querySelector('#unionBindModal .bank-btn.selected');
+        let bank = bankBtn ? bankBtn.dataset.bank : '';
+        if (!bank) return alert('请选择银行');
+        if (bank === '其他银行') {
+          const other = (document.getElementById('unionOtherBank')||{}).value || '';
+          if (!other) return alert('请输入银行名称');
+          bank = other;
+        }
+        if (!card) return alert('请输入银行卡号');
+        if (!pwd) return alert('请输入绑定密码');
+        const raw = localStorage.getItem('paymentBindings'); let map = {}; try { map = raw?JSON.parse(raw):{} } catch(e) { map = {}; }
+        map['unionpay'] = { account: card + ' (' + bank + ')', boundAt: Date.now(), cardPwd: pwd };
+        localStorage.setItem('paymentBindings', JSON.stringify(map));
+        document.getElementById('unionBindModal').style.display = 'none';
+        loadBindings();
+      });
+      // 解绑模态确认/取消处理
+      document.getElementById('unbindCancelBtn').addEventListener('click', function(){
+        document.getElementById('unbindConfirmModal').style.display = 'none';
+        window._pendingUnbindMethod = null;
+      });
+      document.getElementById('unbindConfirmBtn').addEventListener('click', function(){
+        const m = window._pendingUnbindMethod;
+        if (!m) { document.getElementById('unbindConfirmModal').style.display = 'none'; return; }
+        try {
+          const raw = localStorage.getItem('paymentBindings'); let map = {}; try { map = raw?JSON.parse(raw):{} } catch(e) { map = {}; }
+          delete map[m]; localStorage.setItem('paymentBindings', JSON.stringify(map));
+        } catch(e) { console.error('解绑失败', e); }
+        document.getElementById('unbindConfirmModal').style.display = 'none';
+        window._pendingUnbindMethod = null;
+        loadBindings();
+      });
+    })();
+  </script>
+
+  <!-- 核心页面容器 -->
+  <div class="container page-container">
+    <!-- 1. 车票预订页面 -->
+    <div class="page active" id="ticket-page">
+      <div class="page-title">火车票预订</div>
+      <form class="search-form" id="trainSearchForm">
+        <div class="form-item">
+          <label for="startCity">出发地</label>
+          <select id="startCity" style="padding:6px;">
+              <option value="北京">北京</option>
+              <option value="上海">上海</option>
+              <option value="广州">广州</option>
+              <option value="深圳" selected>深圳</option>
+              <option value="成都">成都</option>
+              <option value="重庆">重庆</option>
+              <option value="杭州">杭州</option>
+              <option value="南京">南京</option>
+              <option value="武汉">武汉</option>
+              <option value="西安">西安</option>
+              <option value="郑州">郑州</option>
+              <option value="长沙">长沙</option>
+              <option value="青岛">青岛</option>
+              <option value="苏州">苏州</option>
+              <option value="宁波">宁波</option>
+              <option value="无锡">无锡</option>
+              <option value="厦门">厦门</option>
+              <option value="合肥">合肥</option>
+              <option value="佛山">佛山</option>
+              <option value="东莞">东莞</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-item">
+          <label for="endCity">到达地</label>
+          <select id="endCity" style="padding:6px;">
+              <option value="北京">北京</option>
+              <option value="上海" selected>上海</option>
+              <option value="广州">广州</option>
+              <option value="深圳">深圳</option>
+              <option value="成都">成都</option>
+              <option value="重庆">重庆</option>
+              <option value="杭州">杭州</option>
+              <option value="南京">南京</option>
+              <option value="武汉">武汉</option>
+              <option value="西安">西安</option>
+              <option value="郑州">郑州</option>
+              <option value="长沙">长沙</option>
+              <option value="青岛">青岛</option>
+              <option value="苏州">苏州</option>
+              <option value="宁波">宁波</option>
+              <option value="无锡">无锡</option>
+              <option value="厦门">厦门</option>
+              <option value="合肥">合肥</option>
+              <option value="佛山">佛山</option>
+              <option value="东莞">东莞</option>
+          </select>
+        </div>
+        <div class="form-item">
+          <label for="trainDate">出发日期</label>
+          <input type="date" id="trainDate" value="">
+        </div>
+        <div class="form-item">
+          <label for="seatType">席别</label>
+          <select id="seatType">
+            <option value="all">全部席别</option>
+            <option value="二等座">二等座</option>
+            <option value="一等座">一等座</option>
+            <option value="无座">无座</option>
+          </select>
+        </div>
+        <button type="button" class="search-btn" id="searchBtn">查询车票</button>
+      </form>
+      <div class="train-list" id="trainList">
+        <div class="list-header">
+          <div>车次</div>
+          <div>出发（站/时间）</div>
+          <div>到达（站/时间）</div>
+          <div>历时</div>
+          <div>二等座（价/余）</div>
+          <div>一等座（价/余）</div>
+          <div>操作</div>
+        </div>
+        <div class="empty-state" id="ticketEmptyState">请点击查询按钮获取车次信息</div>
+      </div>
+      
+    </div>
+
+    <!-- 2. 订单查询页面 -->
+    <div class="page" id="order-page">
+      <div class="page-title">我的订单</div>
+      <form class="order-search-form" id="orderSearchForm">
+        <div class="form-item">
+          <label for="orderNo">订单号</label>
+          <input type="text" id="orderNo" placeholder="请输入订单号">
+        </div>
+        <div class="form-item">
+          <label for="orderDate">下单日期</label>
+          <input type="date" id="orderDate" value="2025-12-20">
+        </div>
+        <div class="form-item">
+          <label for="orderStatus">订单状态</label>
+          <select id="orderStatus">
+            <option value="all">全部状态</option>
+            <option value="pending">待支付</option>
+            <option value="paid">已支付</option>
+            <option value="waitlist">候补中</option>
+            <option value="cancelled">已取消</option>
+          </select>
+        </div>
+        <button type="button" class="search-btn" id="orderSearchBtn">查询订单</button>
+      </form>
+      <div class="order-list" id="orderList">
+        <div class="order-header">
+          <div>订单号</div>
+          <div>车次/行程</div>
+          <div>下单时间</div>
+          <div>金额</div>
+          <div>状态</div>
+          <div>操作</div>
+        </div>
+        <div class="empty-state" id="orderEmptyState">请点击查询按钮获取订单信息</div>
+      </div>
+    </div>
+    
+    <div class="page" id="user-page">
+      <div class="page-title">个人中心</div>
+      <div class="user-center">
+        <div class="user-sidebar">
+          <div class="user-avatar" id="userAvatar">用</div>
+            <div class="user-name" id="sidebarUserName">游客用户</div>
+          <ul class="user-menu">
+            <li class="user-menu-item active" data-menu="passenger">常用乘客</li>
+            <li class="user-menu-item" data-menu="info">个人信息</li>
+            <li class="user-menu-item" data-menu="safe">账户安全</li>
+          </ul>
+        </div>
+        <div class="user-content" id="userContent">
+          <!-- 身份认证模块（新增） -->
+          <div id="verifyBlock" style="margin-bottom:20px; padding:10px; border:1px dashed #eee; border-radius:4px;">
+            <h3 style="margin-bottom:10px;">身份认证</h3>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <input id="idPhone" placeholder="手机号" style="height:38px; padding:0 10px; flex:1; min-width:150px; border:1px solid #ccc; border-radius:2px;" />
+              <input id="idCard" placeholder="身份证号" style="height:38px; padding:0 10px; flex:2; min-width:200px; border:1px solid #ccc; border-radius:2px;" />
+              <button class="search-btn" id="verifyBtn" style="height:38px; font-size:80%;">保存认证</button>
+            </div>
+            <div id="verifyStatus" style="margin-top:10px;color:#666;"></div>
+          </div>
+          <div id="verifyDone" style="display:none; margin-bottom:20px; padding:10px; border:1px dashed #eee; border-radius:4px; color:#2e7d32;">
+            <h3 style="margin-bottom:6px;">身份认证</h3>
+            <div id="verifiedInfo">已认证</div>
+          </div>
+
+          <!-- 常用乘客模块 -->
+          <div class="user-panel active" id="passenger-panel">
+            <h3 style="margin-bottom: 15px;">常用乘车人</h3>
+            <button class="search-btn" style="width: 150px; height: 40px; font-size: 16px; margin-bottom: 20px;" id="addPassengerBtn">添加乘客</button>
+            <!-- 添加乘客弹窗（默认隐藏） -->
+            <div id="passengerModal" style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(1.6); transform-origin:center; background:#fff; padding:16px; box-shadow:0 4px 12px rgba(0,0,0,0.2); border-radius:6px; z-index:2000; width:420px;">
+              <h4 style="margin-bottom:10px;">添加常用乘客</h4>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <input id="modal_passenger_name" placeholder="乘客姓名" style="height:36px; padding:0 8px;" />
+                <input id="modal_passenger_idcard" placeholder="乘客身份证号" style="height:36px; padding:0 8px;" />
+                <input id="modal_passenger_phone" placeholder="乘客手机号（可选）" style="height:36px; padding:0 8px;" />
+                <select id="modal_passenger_type" style="height:36px; padding:0 8px;">
+                  <option value="adult">成人</option>
+                  <option value="child">儿童</option>
+                </select>
+                <div style="display:flex; gap:8px; justify-content:flex-end;">
+                  <button id="modalCancelBtn" class="order-btn" style="background:#fff; color:#d92121; font-size:70%; padding:6px 8px; height:30px;">取消</button>
+                  <button id="modalSaveBtn" class="search-btn" style="font-size:70%; padding:6px 10px; height:32px;">保存</button>
+                </div>
+              </div>
+            </div>
+            <div class="passenger-list">
+              <div class="passenger-header">
+                <div>乘客姓名</div>
+                <div>身份证号</div>
+                <div>手机号</div>
+                <div>类型</div>
+                <div>操作</div>
+              </div>
+              <div class="empty-state" id="passengerEmptyState">暂无常用乘客，请添加</div>
+              <div id="passengerListContent"></div>
+            </div>
+          </div>
+          <!-- 个人信息模块（模拟） -->
+          <div class="user-panel" id="info-panel">
+            <h3 style="margin-bottom: 15px;">个人信息</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; width: 150px; color: #666;">用户名</td>
+                <td id="info_username" style="padding: 10px;">游客用户</td>
+                <td style="padding: 10px; width: 160px; text-align: right;">
+                  <button class="search-btn" id="changeUsernameBtn" style="height:34px; font-size:14px; padding:0 10px;">修改用户名</button>
+                </td>
+              </tr>
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; color: #666;">手机号</td>
+                <td id="info_phone" style="padding: 10px;">138****8888</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; color: #666;">头像</td>
+                <td style="padding: 10px;">
+                  <div class="avatar-controls">
+                    <input type="file" id="avatarInput" accept="image/*" />
+                    <div class="avatar-preview-small" id="avatarPreviewSmall"></div>
+                    <button id="uploadAvatarBtn" class="avatar-upload-btn">上传头像</button>
+                    <button id="removeAvatarBtn" class="avatar-remove-btn">移除</button>
+                  </div>
+                  <div style="color:#999; font-size:12px; margin-top:6px;">支持 JPG/PNG，最大 2MB。上传后会保存至本地浏览器存储。</div>
+                </td>
+              </tr>
+            </table>
+            
+          </div>
+          <!-- 账户安全模块（模拟） -->
+          <div class="user-panel" id="safe-panel">
+            <h3 style="margin-bottom: 15px;">账户安全</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px; width: 150px; color: #666;">登录密码</td>
+                <td style="padding: 10px;">已设置 <span style="color: #999;">（最后修改：2025-12-01）</span></td>
+                <td style="padding: 10px;"><button class="order-btn" id="changePasswordBtn">修改密码</button></td>
+              </tr>
+            </table>
+            
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 购票指南页面 -->
+    <div class="page" id="payment-page">
+      <div class="page-title">支付绑定</div>
+      <div style="background:#fff; padding:16px; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+        <p style="margin-bottom:8px; color:#666;">管理您的支付方式。已绑定的方式会显示在上方，未绑定的可点击“绑定”。</p>
+        <div style="display:flex; gap:20px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:260px;">
+            <h4 style="margin-bottom:8px;">已绑定</h4>
+            <div id="boundList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+          <div style="flex:1; min-width:260px;">
+            <h4 style="margin-bottom:8px;">未绑定</h4>
+            <div id="unboundList" style="display:flex; flex-direction:column; gap:8px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="guide-page">
+      <div class="page-title">购票指南</div>
+      <div class="guide-content">
+        <div class="guide-section">
+          <h3>一、购票须知</h3>
+          <ul>
+            <li>12306网站每天06:00-23:00提供购票服务，其余时间为系统维护期。</li>
+            <li>可预订未来15天以内的火车票，预售期如有调整请以官方公告为准。</li>
+            <li>一张有效身份证件同一乘车日期同一车次只能购买一张车票（儿童票除外）。</li>
+            <li>订单提交后需在30分钟内完成支付，超时未支付订单将自动取消。</li>
+          </ul>
+        </div>
+        <div class="guide-section">
+          <h3>二、退票/改签规则</h3>
+          <ul>
+            <li>开车前8天（含）以上退票的，不收取退票费；</li>
+            <li>开车前48小时以上至8天以内退票的，按票价5%收取退票费；</li>
+            <li>开车前24小时以上至48小时以内退票的，按票价10%收取退票费；</li>
+            <li>开车前24小时以内退票的，按票价20%收取退票费；</li>
+            <li>改签不收取手续费，一张车票只能改签一次。</li>
+          </ul>
+        </div>
+        <div class="guide-section">
+          <h3>三、常见问题</h3>
+          <ul>
+            <li>Q：忘记订单号如何查询？<br>A：可通过「我的12306-订单查询」选择日期和状态查询，无需订单号。</li>
+            <li>Q：儿童票如何购买？<br>A：身高1.2米以下免票，1.2-1.5米购买儿童票，1.5米以上需购买成人票。</li>
+            <li>Q：支付失败怎么办？<br>A：请检查支付账户余额或网络，支付失败后订单会保留30分钟，可重新支付。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+        // ===== 登录状态同步 =====
+    window.onload = function() {
+      // 检查是否已登录
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+      const loginLink = document.getElementById('loginLink');
+      
+      if (loginUser) {
+        // 已登录：显示用户名+退出按钮
+        loginLink.innerHTML = `${loginUser.username} <span style="color: #666; font-weight: normal;">|</span> <span id="logoutBtn" style="color: #d92121; cursor: pointer;">退出</span>`;
+        // 填充侧边栏和个人信息（先显示本地缓存内容）
+        const sidebarNameEl = document.getElementById('sidebarUserName');
+        const infoNameEl = document.getElementById('info_username');
+        const infoPhoneEl = document.getElementById('info_phone');
+        if (sidebarNameEl) sidebarNameEl.textContent = loginUser.username || '游客用户';
+        if (infoNameEl) infoNameEl.textContent = loginUser.username || '游客用户';
+        if (infoPhoneEl && loginUser.phone) infoPhoneEl.textContent = loginUser.phone;
+
+        // 从后端拉取最新用户信息并覆盖显示
+        fetch(`http://localhost:3000/api/user/${loginUser.userId}`)
+          .then(res => res.json())
+            .then(res => {
+              if (res && res.code === 0 && res.data) {
+                const u = res.data;
+                if (sidebarNameEl) sidebarNameEl.textContent = u.username || sidebarNameEl.textContent;
+                if (infoNameEl) infoNameEl.textContent = u.username || infoNameEl.textContent;
+                if (infoPhoneEl) infoPhoneEl.textContent = u.phone || infoPhoneEl.textContent;
+                // 更新 localStorage 缓存
+                const cached = JSON.parse(localStorage.getItem('12306_loginUser')) || {};
+                cached.phone = u.phone || cached.phone;
+                cached.username = u.username || cached.username;
+                cached.id_card = u.id_card || cached.id_card;
+                localStorage.setItem('12306_loginUser', JSON.stringify(cached));
+                // 如果已认证（手机号和身份证都有），隐藏表单并显示已认证信息
+                try {
+                  const verifyBlock = document.getElementById('verifyBlock');
+                  const verifyDone = document.getElementById('verifyDone');
+                  const verifiedInfo = document.getElementById('verifiedInfo');
+                  if (u.phone && u.id_card) {
+                    if (verifyBlock) verifyBlock.style.display = 'none';
+                    if (verifyDone) {
+                      const maskedPhone = String(u.phone).replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+                      const maskedId = maskId(u.id_card);
+                      verifiedInfo.textContent = `手机号 ${maskedPhone}，身份证 ${maskedId}`;
+                      verifyDone.style.display = 'block';
+                    }
+                  } else {
+                    if (verifyBlock) verifyBlock.style.display = 'block';
+                    if (verifyDone) verifyDone.style.display = 'none';
+                  }
+                } catch (e) {
+                  // ignore DOM errors
+                }
+              }
+            }).catch(err => {
+              console.warn('无法拉取用户信息：', err);
+            });
+        
+        // 退出登录功能
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+          localStorage.removeItem('12306_loginUser');
+          alert('已退出登录！');
+          window.location.reload(); // 刷新页面更新状态
+        });
+      } else {
+        // 未登录：显示请登录（跳转login.html）
+        loginLink.onclick = function() {
+          window.location.href = './login.html'; 
+        };
+      }
+
+      // 已使用更精确的预订按钮处理逻辑（绑定在生成的 ticket-btn 上），
+      // 这里移除全局拦截器以避免与弹窗流程冲突。
+    };
+    // ===== 通用页面切换逻辑 =====
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = document.querySelectorAll('.page');
+    
+    navItems.forEach(item => {
+      item.addEventListener('click', function() {
+        // 切换导航激活状态
+        navItems.forEach(nav => nav.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 切换页面显示
+        const targetPage = this.getAttribute('data-page');
+        pages.forEach(page => {
+          page.classList.remove('active');
+          if (page.id === targetPage) {
+            page.classList.add('active');
+          }
+        });
+        // 如果切换到车票预订页，自动根据当前输入框触发一次查询
+        if (targetPage === 'ticket-page') {
+          setTimeout(() => {
+            const sb = document.getElementById('searchBtn');
+            const startCity = (document.getElementById('startCity') || {}).value || '';
+            const endCity = (document.getElementById('endCity') || {}).value || '';
+            const date = (document.getElementById('trainDate') || {}).value || '';
+            if (sb && startCity && endCity && date) sb.click();
+          }, 80);
+        }
+        // 如果切换到订单查询页，优先使用网络时间设置 orderDate，再自动加载当天订单
+        if (targetPage === 'order-page') {
+          const orderDateInput = document.getElementById('orderDate');
+          if (orderDateInput) {
+            (async function(){
+              try {
+                const resp = await fetch('https://worldtimeapi.org/api/ip');
+                if (resp.ok) {
+                  const j = await resp.json();
+                  const dt = new Date(j.utc_datetime || j.datetime || (j.unixtime? j.unixtime*1000 : undefined));
+                  if (!isNaN(dt)) {
+                    const y = dt.getFullYear();
+                    const m = String(dt.getMonth() + 1).padStart(2, '0');
+                    const d = String(dt.getDate()).padStart(2, '0');
+                    orderDateInput.value = `${y}-${m}-${d}`;
+                  } else {
+                    const now = new Date(); orderDateInput.value = now.toISOString().slice(0,10);
+                  }
+                } else {
+                  const now = new Date(); orderDateInput.value = now.toISOString().slice(0,10);
+                }
+              } catch (e) {
+                const now = new Date(); orderDateInput.value = now.toISOString().slice(0,10);
+              }
+              // 网络时间设置完成后再加载订单（确保按正确日期过滤）
+              setTimeout(() => { if (typeof loadOrders === 'function') loadOrders(); }, 60);
+            })();
+          } else {
+            // 若没有日期输入，直接加载
+            setTimeout(() => { if (typeof loadOrders === 'function') loadOrders(); }, 60);
+          }
+        }
+      });
+    });
+
+   // ===== 1. 车票预订页面：使用本地开源车次数据查询 =====
+const searchBtn = document.getElementById('searchBtn');
+const trainList = document.getElementById('trainList');
+const ticketEmptyState = document.getElementById('ticketEmptyState');
+let __searchLock = false;
+let __lastSearchAt = 0;
+const __SEARCH_DEBOUNCE_MS = 800;
+
+searchBtn.addEventListener('click', function() {
+  // 1. 获取用户输入
+  const startCity = document.getElementById('startCity').value.trim();
+  const endCity = document.getElementById('endCity').value.trim();
+  const date = document.getElementById('trainDate').value;
+
+  // 2. 基础校验
+  if (!startCity || !endCity || !date) {
+    alert('请填写完整的出发地、到达地和日期！');
+    return;
+  }
+
+  // 防止重复触发（节流）
+  const now = Date.now();
+  if (__searchLock || (now - __lastSearchAt) < __SEARCH_DEBOUNCE_MS) {
+    return;
+  }
+  __searchLock = true;
+  __lastSearchAt = now;
+
+  // 3. 显示加载状态
+  ticketEmptyState.textContent = "正在查询车次信息...";
+  ticketEmptyState.style.display = 'block';
+
+  // 4. 模拟网络延迟（更真实）
+  setTimeout(() => {
+    try {
+    // 5. 筛选车次（模糊匹配，如“北京”匹配“北京南”），并根据出发日期/当前时间只展示可购买车次
+    const selectedDate = (document.getElementById('trainDate') || {}).value || '';
+    const todayStr = new Date().toISOString().slice(0,10);
+    const isSearchingToday = (selectedDate === todayStr);
+
+    const filteredTrains = window.trainData.filter(train => {
+      const startMatch = train.startStation.includes(startCity);
+      const endMatch = train.endStation.includes(endCity);
+      if (!(startMatch && endMatch)) return false;
+
+      // 如果用户选择的日期是今天，则只显示发车时间晚于当前时间的车次
+      if (isSearchingToday) {
+        try {
+          let t = String(train.startTime || '').trim();
+          if (!t) return false;
+          // 补全到 HH:MM:SS 格式
+          if (/^\d{1,2}:\d{2}$/.test(t)) t = t + ':00';
+          // 将 selectedDate + time 转为本地时间比较
+          const dtStr = selectedDate + 'T' + t;
+          let dt = new Date(dtStr);
+          if (isNaN(dt.getTime())) {
+            // 降级尝试：直接用 Date 构造
+            dt = new Date(selectedDate + ' ' + String(train.startTime || ''));
+          }
+          if (isNaN(dt.getTime())) return true; // 无法解析时放开显示
+          return dt.getTime() > Date.now();
+        } catch (e) { return true; }
+      }
+      // 如果选择的日期不是今天（未来或过去），默认展示（未来日期显示全部车次）
+      return true;
+    });
+
+    // 6. 清空原有列表
+    const existingTrainItems = document.querySelectorAll('.train-item');
+    existingTrainItems.forEach(item => item.remove());
+
+    // 7. 处理筛选结果
+    if (filteredTrains.length === 0) {
+      ticketEmptyState.textContent = "未查询到符合条件的车次，请更换城市重试！";
+      ticketEmptyState.style.display = 'block';
+      return;
+    } else {
+      ticketEmptyState.style.display = 'none';
+    }
+
+    // 8. 渲染车次列表
+    filteredTrains.forEach(train => {
+      const trainItem = document.createElement('div');
+      trainItem.className = 'train-item';
+      // seatAvailability may be missing in some data; normalize
+      const ava = train.seatAvailability || {};
+      const avaSecond = ava.second === undefined ? '未知' : ava.second;
+      const avaFirst = ava.first === undefined ? '未知' : ava.first;
+      const avaNo = ava.noSeat === undefined ? undefined : ava.noSeat; // 1 表示有票，0 表示无票
+      const showWait = ((ava.second !== undefined && ava.second === 0) || (ava.first !== undefined && ava.first === 0) || (ava.noSeat !== undefined && ava.noSeat === 0));
+      // 格式化显示：>10 显示“有票”，==0 或 '无' 显示“无”，其他显示具体剩余
+      function availDisplay(v) {
+        if (v === '未知' || v === undefined || v === null) return '未知';
+        if (v === '无') return '无票';
+        const n = Number(v);
+        if (!isNaN(n)) {
+          if (n === 0) return '无票';
+          if (n > 10) return '有票';
+          return `余${n}张`;
+        }
+        return String(v);
+      }
+      const displaySecond = availDisplay(avaSecond);
+      const displayFirst = availDisplay(avaFirst);
+      trainItem.innerHTML = `
+        <div class="train-number">${train.number}</div>
+        <div>${train.startStation || ''} <br/><small style="color:#777;">${train.startTime || ''}</small></div>
+        <div>${train.endStation || ''} <br/><small style="color:#777;">${train.endTime || ''}</small></div>
+        <div>${train.duration || ''}</div>
+        <div>¥${train.secondSeatPrice} <br/><small style="color:#777;">${displaySecond}</small></div>
+        <div>¥${train.firstSeatPrice} <br/><small style="color:#777;">${displayFirst}</small></div>
+        <div>
+          <button class="ticket-btn"
+            data-train-no="${train.number}"
+            data-second-price="${train.secondSeatPrice}"
+            data-first-price="${train.firstSeatPrice}"
+            data-start-station="${train.startStation}"
+            data-end-station="${train.endStation}"
+            data-depart="${train.startTime}"
+            data-ava-second="${avaSecond}"
+            data-ava-first="${avaFirst}"
+            data-ava-noseat="${avaNo === undefined ? '' : avaNo}"
+          >预订</button>
+        </div>
+      `;
+      trainList.appendChild(trainItem);
+    });
+
+    // 9. 预订按钮点击事件：弹出选择席别与支付方式的确认弹窗（要求已认证）
+    const bookingModal = document.getElementById('bookingModal');
+    const bookingCancelBtn = document.getElementById('bookingCancelBtn');
+    const bookingConfirmBtn = document.getElementById('bookingConfirmBtn');
+    const bookingTrainInfo = document.getElementById('bookingTrainInfo');
+    const bookingSeatSelect = document.getElementById('booking_seat_select');
+
+    // 根据当前选中席别更新确认按钮文本与支付选项（候补时禁用支付）
+    function updateBookingActionUI() {
+      const selected = bookingSeatSelect.options[bookingSeatSelect.selectedIndex];
+      const isWait = selected && selected.dataset && selected.dataset.wait === '1';
+      const waitHintEl = document.getElementById('bookingWaitHint');
+      if (isWait) {
+        bookingConfirmBtn.textContent = '候补';
+        // 禁用并取消选中支付方式
+        document.querySelectorAll('input[name="booking_payment"]').forEach(r => { r.checked = false; r.disabled = true; r.parentElement.style.opacity = '0.6'; });
+        if (waitHintEl) { waitHintEl.style.display = 'block'; }
+      } else {
+        bookingConfirmBtn.textContent = '确认并支付';
+        // 启用已绑定的支付方式，未绑定的显示为不可选并提示绑定
+        let bindings = {};
+        try { bindings = JSON.parse(localStorage.getItem('paymentBindings') || '{}'); } catch(e) { bindings = {}; }
+        document.querySelectorAll('input[name="booking_payment"]').forEach(r => {
+          const bound = bindings[r.value] && bindings[r.value].account;
+          r.disabled = !bound;
+          if (!bound) {
+            r.parentElement.style.opacity = '0.5';
+            r.checked = false;
+          } else {
+            r.parentElement.style.opacity = '';
+          }
+        });
+        if (waitHintEl) { waitHintEl.style.display = 'none'; }
+      }
+    }
+    bookingSeatSelect.addEventListener('change', updateBookingActionUI);
+
+    let currentBooking = null; // 保存当前待确认的车次数据
+
+    const bookingBackdrop = document.getElementById('bookingBackdrop');
+    // 将 showBookingModal 暴露为全局函数，便于支付模态等处调用
+    window.showBookingModal = function(show) {
+      const bookingModalEl = document.getElementById('bookingModal');
+      const bookingBackdropEl = document.getElementById('bookingBackdrop');
+      if (bookingModalEl) bookingModalEl.style.display = show ? 'block' : 'none';
+      if (bookingBackdropEl) bookingBackdropEl.style.display = show ? 'block' : 'none';
+      document.body.style.overflow = show ? 'hidden' : '';
+
+      // 当弹窗打开时，异步填充乘客下拉（本人 + 常用乘车人）
+      if (show) {
+        (async function fillPassengerSelect(){
+          try {
+            const select = document.getElementById('booking_passenger_select');
+            if (!select) return;
+            // 清空并放置占位项
+            select.innerHTML = '<option value="" disabled selected>请选择乘客（本人或常用乘车人）</option>';
+            const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+            if (loginUser) {
+              const el = document.createElement('option');
+              el.value = 'self';
+              el.textContent = `本人 - ${loginUser.name || ''} ${loginUser.phone ? '('+loginUser.phone+')' : ''}`;
+              el.dataset.name = loginUser.name || '';
+              el.dataset.id = loginUser.id_card || '';
+              el.dataset.phone = loginUser.phone || '';
+              select.appendChild(el);
+              // 默认选择本人，便于用户直接提交
+              try { select.value = 'self'; } catch(e) {}
+            }
+            // 加载常用乘车人列表并追加
+            try {
+              const uid = loginUser ? loginUser.userId : '';
+              if (uid) {
+                const resp = await fetch(`http://localhost:3000/api/frequent_passengers?userId=${encodeURIComponent(uid)}`);
+                if (resp && resp.ok) {
+                  const j = await resp.json();
+                  if (j && j.code === 0 && Array.isArray(j.data)) {
+                    j.data.forEach(p => {
+                      const o = document.createElement('option');
+                      o.value = p.id || (`fp_${p.id || Math.random().toString(36).slice(2,8)}`);
+                      // 使用后端字段名：passenger_name/passenger_phone/passenger_id_card
+                      o.textContent = `${p.passenger_name || ''} ${p.passenger_phone ? '('+p.passenger_phone+')' : ''}`;
+                      o.dataset.name = p.passenger_name || '';
+                      o.dataset.id = p.passenger_id_card || '';
+                      o.dataset.phone = p.passenger_phone || '';
+                      select.appendChild(o);
+                    });
+                  }
+                }
+              }
+            } catch(e) { console.error('加载常用乘车人失败', e); }
+          } catch (e) { console.error('填充乘客下拉失败', e); }
+        })();
+      }
+    };
+
+    // 绑定每个预订按钮：弹窗填充并打开
+    document.querySelectorAll('.ticket-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+        if (!loginUser) {
+          alert('请先登录后再预订车票！');
+          window.location.href = './login.html';
+          return;
+        }
+        // 身份认证检查：必须有 phone 和 id_card
+        if (!loginUser.phone || !loginUser.id_card) {
+          alert('请先完成身份认证（手机号与身份证），认证后才能预订');
+          // 可跳转到个人中心认证位置
+          document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+          document.querySelector('[data-page="user-page"]').classList.add('active');
+          document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+          document.getElementById('user-page').classList.add('active');
+          // 切换到个人中心并打开认证模块位置
+          try { document.querySelector('.user-menu-item[data-menu="info"]').click(); } catch (e) {}
+          return;
+        }
+
+        const btnEl = this;
+        const trainNo = btnEl.dataset.trainNo;
+        const secondPrice = parseFloat(btnEl.dataset.secondPrice) || 0;
+        const firstPrice = parseFloat(btnEl.dataset.firstPrice) || 0;
+        const start = btnEl.dataset.startStation || document.getElementById('startCity').value;
+        const end = btnEl.dataset.endStation || document.getElementById('endCity').value;
+        const depart = btnEl.dataset.depart || document.getElementById('trainDate').value;
+        // availability from data attributes (可能为数字、字符串 '无' 或 '未知')
+        const avaSecondRaw = btnEl.dataset.avaSecond;
+        const avaFirstRaw = btnEl.dataset.avaFirst;
+        const avaBusinessRaw = btnEl.dataset.avaBusiness;
+        const avaNoRaw = btnEl.dataset.avaNoseat;
+        function normalizeA(v) {
+          if (v === undefined || v === null) return null;
+          if (v === '未知' || v === '') return null;
+          if (v === '无') return 0;
+          const n = Number(v);
+          return isNaN(n) ? v : n;
+        }
+        const avaSecond = normalizeA(avaSecondRaw);
+        const avaFirst = normalizeA(avaFirstRaw);
+        const avaBusiness = normalizeA(avaBusinessRaw);
+        const avaNo = normalizeA(avaNoRaw);
+
+        currentBooking = { trainNo, secondPrice, firstPrice, start, end, depart, avaSecond, avaFirst, avaBusiness, avaNo };
+        window.currentBooking = currentBooking;
+        const noSeatText = avaNo === null || avaNo === undefined ? '未知' : (avaNo === 1 ? '有票' : '无票');
+        bookingTrainInfo.textContent = `${trainNo} ${start}→${end} 发车：${depart} — 余票：二等${avaSecond ?? '未知'} 一等${avaFirst ?? '未知'} 无座${noSeatText}`;
+
+        // 根据余票动态生成席别选项（要求显式选择）
+        (function populateSeatOptions(){
+          const createOption = (val, label, avail) => {
+            let text = label;
+            if (avail === null || avail === undefined) {
+              // 不显示余量
+            } else if (typeof avail === 'number') {
+              text += `（余${avail}张）`;
+            } else {
+              text += `（${avail}）`;
+            }
+            let attrs = '';
+            if (avail === 0) {
+              // 余票为0，允许候补：标记 data-wait="1" 并在文字上提示
+              text += '（已售罄，可候补）';
+              attrs += ' data-wait="1"';
+            }
+            return `<option value="${val}"${attrs}>${text}</option>`;
+          };
+          const opts = [];
+          opts.push(`<option value="" disabled selected>请选择席别</option>`);
+          // 一等座
+          opts.push(createOption('一等座', '一等座', avaFirst));
+          // 二等座
+          opts.push(createOption('二等座', '二等座', avaSecond));
+          // 无座/硬座/硬卧：显示有/无票（avaNo: 1 有票，0 无票）
+          if (avaNo !== null && avaNo !== undefined) {
+            // 对无座单独格式化显示
+            const createNoOption = (val, label, avail) => {
+              let text = label;
+              if (avail === 1) text += '（有票）';
+              else if (avail === 0) text += '（无票，可候补）';
+              else text += `（${avail}）`;
+              let attrs = '';
+              if (avail === 0) attrs += ' data-wait="1"';
+              return `<option value="${val}"${attrs}>${text}</option>`;
+            };
+            opts.push(createNoOption('无座', '无座', avaNo));
+          }
+          bookingSeatSelect.innerHTML = opts.join('');
+        })();
+
+        // 如果全局席别已经指定并且可用，则默认选择，否则保持空
+        const globalSeat = (document.getElementById('seatType') || {}).value || '';
+        if (globalSeat && globalSeat !== 'all') {
+          try { bookingSeatSelect.value = globalSeat; } catch(e) { bookingSeatSelect.value = ''; }
+        } else bookingSeatSelect.value = '';
+        // 在展示弹窗前根据默认选项更新按钮/支付控件状态
+        updateBookingActionUI();
+        showBookingModal(true);
+      });
+    });
+
+    bookingCancelBtn.addEventListener('click', function() { currentBooking = null; window.currentBooking = null; showBookingModal(false); });
+
+    // NOTE: 候补由弹窗内的席别选项控制（选中已售罄项会将订单标记为 waitlist）
+
+    bookingConfirmBtn.addEventListener('click', async function() {
+      if (!currentBooking) { showBookingModal(false); return; }
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+      if (!loginUser) { alert('登录信息已失效，请重新登录'); window.location.href = './login.html'; return; }
+
+      const seatTypeSelected = bookingSeatSelect.value;
+      if (!seatTypeSelected) { alert('请先选择席别再下单'); return; }
+      // 根据席别选择价格
+      let price = currentBooking.secondPrice || 0;
+      if (seatTypeSelected.includes('一等') || seatTypeSelected === '一等座') price = currentBooking.firstPrice || price;
+      // 商务座已移除，保留一等/二等/无座逻辑
+      // 若选中的席别带有 data-wait="1"，则视为候补（未支付）
+      const selectedOption = bookingSeatSelect.options[bookingSeatSelect.selectedIndex];
+      const isWait = selectedOption && selectedOption.dataset && selectedOption.dataset.wait === '1';
+
+      // 将选择的席别与价格记录到 currentBooking，供后续支付模态使用
+      window.currentBooking.seatType = seatTypeSelected;
+      window.currentBooking.price = price;
+
+      // 确定支付方式：候补不需要支付；若非候补则先走支付 UI（二维码/Apple/银联），支付完成后再创建订单为 paid
+      const selectedPay = document.querySelector('input[name="booking_payment"]:checked')?.value || '';
+      if (isWait) {
+        // 直接创建候补订单
+        // 取所选乘客信息（若无则空）
+        const _ps = document.getElementById('booking_passenger_select');
+        const _sel = _ps && _ps.options[_ps.selectedIndex];
+        const passenger_name = _sel ? (_sel.dataset.name || '') : '';
+        const passenger_id_card = _sel ? (_sel.dataset.id || '') : '';
+        const passenger_phone = _sel ? (_sel.dataset.phone || '') : '';
+        const payload = {
+          userId: loginUser.userId,
+          start_city: currentBooking.start,
+          end_city: currentBooking.end,
+          train_no: currentBooking.trainNo,
+          price: price,
+          depart_time: document.getElementById('trainDate').value + ' ' + currentBooking.depart,
+          seat_type: seatTypeSelected,
+          payment_method: '',
+          status: 'waitlist',
+          passenger_name: passenger_name,
+          passenger_id_card: passenger_id_card,
+          passenger_phone: passenger_phone
+        };
+        // 发送创建请求
+        try {
+          const resp = await fetch('http://localhost:3000/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const result = await resp.json();
+          if (result.code === 0) {
+            alert('候补已提交：' + result.data.order_no + '，状态：候补（未支付）。请等待有票后系统通知您支付。');
+            currentBooking = null; window.currentBooking = null; showBookingModal(false);
+            try { if (typeof loadOrders === 'function') await loadOrders(); } catch(e) { console.error('加载订单失败', e); }
+          } else { alert('创建候补失败：' + (result.msg || '未知错误')); }
+        } catch (err) { console.error(err); alert('请求失败，请检查后端服务'); }
+        return;
+      }
+
+      // 非候补：根据支付方式展示不同支付交互
+      const bindings = JSON.parse(localStorage.getItem('paymentBindings') || '{}');
+      if (selectedPay === 'apple_pay') {
+        // Apple Pay 模拟：无需密码，直接展示 UI，然后创建 paid 订单
+        document.getElementById('applePayPrice').textContent = price.toFixed(2);
+        // 隐藏预订弹窗，显示支付模态
+        showBookingModal(false);
+        document.getElementById('paymentBackdrop').style.display = 'block';
+        document.getElementById('applePayModal').style.display = 'block';
+        return; // 后续通过 appleConfirmBtn 处理
+      }
+      if (selectedPay === 'wechat' || selectedPay === 'alipay') {
+        // QR 码支付：显示二维码和价格，用户点击已完成后创建 paid 订单
+        document.getElementById('qrPrice').textContent = price.toFixed(2);
+        const box = document.getElementById('qrBox');
+        box.style.borderColor = (selectedPay === 'wechat') ? '#4caf50' : '#2196f3';
+        document.getElementById('qrPaymentTitle').textContent = (selectedPay === 'wechat') ? '微信扫码支付' : '支付宝扫码支付';
+        // 隐藏预订弹窗，显示支付模态
+        showBookingModal(false);
+        document.getElementById('paymentBackdrop').style.display = 'block';
+        document.getElementById('qrPaymentModal').style.display = 'block';
+        // qrPaidBtn handler will call order creation
+        return;
+      }
+      if (selectedPay === 'unionpay') {
+        // 银联需要卡密码；必须已绑定才可支付
+        const u = bindings['unionpay'];
+        if (!u || !u.account) { if (confirm('未绑定银行卡，是否前往支付绑定页面绑定？')) { document.querySelector('[data-page="payment-page"]').click(); } return; }
+        document.getElementById('unionCardNo').textContent = (u.account || '5773882334');
+        // 隐藏预订弹窗，显示支付模态
+        showBookingModal(false);
+        document.getElementById('paymentBackdrop').style.display = 'block';
+        document.getElementById('unionPayModal').style.display = 'block';
+        return; // unionConfirmBtn 会处理创建 order
+      }
+      // 其他支付方式暂不支持直接支付
+      alert('请选择有效的支付方式');
+      return;
+
+    });
+
+    } finally {
+      __searchLock = false;
+    }
+  }, 100); // 100ms延迟，模拟联网查询
+});
+
+
+// 页面加载时如果当前就是车票预订页，自动触发一次查询（使用初始化框的地址）
+setTimeout(() => {
+  const ticketPage = document.getElementById('ticket-page');
+  if (ticketPage && ticketPage.classList.contains('active')) {
+    const sb = document.getElementById('searchBtn');
+    const startCity = (document.getElementById('startCity') || {}).value || '';
+    const endCity = (document.getElementById('endCity') || {}).value || '';
+    const date = (document.getElementById('trainDate') || {}).value || '';
+    if (sb && startCity && endCity && date) sb.click();
+  }
+}, 200);
+
+    // ===== 支付模态确认按钮处理（在创建订单时作为已支付的标记） =====
+    // 微信/支付宝：二维码支付已完成
+    document.getElementById('qrPaidBtn').addEventListener('click', async function() {
+      const btn = this;
+      btn.disabled = true;
+      document.getElementById('qrPaymentModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+      if (!loginUser || !window.currentBooking) { alert('当前支付上下文丢失，请重试'); btn.disabled = false; return; }
+      const price = parseFloat(window.currentBooking.price || window.currentBooking.secondPrice || 0);
+      // 从乘客下拉获取所选乘客信息
+      const __ps = document.getElementById('booking_passenger_select');
+      const __sel = __ps && __ps.options[__ps.selectedIndex];
+      const __p_name = __sel ? (__sel.dataset.name || '') : '';
+      const __p_id = __sel ? (__sel.dataset.id || '') : '';
+      const __p_phone = __sel ? (__sel.dataset.phone || '') : '';
+      const payload = {
+        userId: loginUser.userId,
+        start_city: window.currentBooking.start,
+        end_city: window.currentBooking.end,
+        train_no: window.currentBooking.trainNo,
+        price: price,
+        depart_time: document.getElementById('trainDate').value + ' ' + window.currentBooking.depart,
+        seat_type: (window.currentBooking.seatType || ''),
+        payment_method: document.querySelector('input[name="booking_payment"]:checked')?.value || '',
+        status: 'paid',
+        passenger_name: __p_name,
+        passenger_id_card: __p_id,
+        passenger_phone: __p_phone
+      };
+      try {
+        const resp = await fetch('http://localhost:3000/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!resp.ok) {
+          console.error('Order create HTTP error', resp.status, resp.statusText);
+          alert('创建订单请求失败：HTTP ' + resp.status);
+          btn.disabled = false;
+          return;
+        }
+        let res;
+        try { res = await resp.json(); } catch (e) { console.error('解析订单创建响应失败', e); alert('创建订单响应解析失败'); btn.disabled = false; return; }
+        if (res.code === 0) {
+          alert('支付成功，订单已创建：' + res.data.order_no);
+          window.currentBooking = null; showBookingModal(false);
+          try { if (typeof loadOrders === 'function') await loadOrders(); } catch(e) { console.error('加载订单失败', e); }
+        } else { alert('创建订单失败：' + (res.msg || '未知错误')); }
+      } catch (err) { console.error(err); alert('创建订单请求失败，请检查后端服务'); }
+      btn.disabled = false;
+    });
+
+    // Apple Pay 确认
+    document.getElementById('appleConfirmBtn').addEventListener('click', async function() {
+      const btn = this; btn.disabled = true;
+      document.getElementById('applePayModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+      if (!loginUser || !window.currentBooking) { alert('当前支付上下文丢失，请重试'); btn.disabled = false; return; }
+      const price = parseFloat(window.currentBooking.price || window.currentBooking.secondPrice || 0);
+      // 加入乘客信息
+      const __ps2 = document.getElementById('booking_passenger_select');
+      const __sel2 = __ps2 && __ps2.options[__ps2.selectedIndex];
+      const __p_name2 = __sel2 ? (__sel2.dataset.name || '') : '';
+      const __p_id2 = __sel2 ? (__sel2.dataset.id || '') : '';
+      const __p_phone2 = __sel2 ? (__sel2.dataset.phone || '') : '';
+      const payload = {
+        userId: loginUser.userId,
+        start_city: window.currentBooking.start,
+        end_city: window.currentBooking.end,
+        train_no: window.currentBooking.trainNo,
+        price: price,
+        depart_time: document.getElementById('trainDate').value + ' ' + window.currentBooking.depart,
+        seat_type: (window.currentBooking.seatType || ''),
+        payment_method: 'apple_pay',
+        status: 'paid',
+        passenger_name: __p_name2,
+        passenger_id_card: __p_id2,
+        passenger_phone: __p_phone2
+      };
+      try {
+        const resp = await fetch('http://localhost:3000/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!resp.ok) { console.error('Order create HTTP error', resp.status); alert('创建订单请求失败：HTTP ' + resp.status); btn.disabled = false; return; }
+        let res; try { res = await resp.json(); } catch(e) { console.error('解析订单创建响应失败', e); alert('创建订单响应解析失败'); btn.disabled = false; return; }
+        if (res.code === 0) {
+          alert('Apple Pay 支付成功，订单已创建：' + res.data.order_no);
+          window.currentBooking = null; showBookingModal(false);
+          try { if (typeof loadOrders === 'function') await loadOrders(); } catch(e) { console.error('加载订单失败', e); }
+        } else { alert('创建订单失败：' + (res.msg || '未知错误')); }
+      } catch (err) { console.error(err); alert('创建订单请求失败，请检查后端服务'); }
+      btn.disabled = false;
+    });
+
+    // 取消按钮：关闭支付模态并返回预订弹窗
+    document.getElementById('qrCancelBtn').addEventListener('click', function(){
+      document.getElementById('qrPaymentModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      // 清理二维码占位状态（可扩展）
+      showBookingModal(true);
+    });
+    document.getElementById('appleCancelBtn').addEventListener('click', function(){
+      document.getElementById('applePayModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      showBookingModal(true);
+    });
+    document.getElementById('unionCancelBtn').addEventListener('click', function(){
+      document.getElementById('unionPayModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      // 清空密码输入
+      try { document.getElementById('unionPayPwd').value = ''; } catch(e) {}
+      showBookingModal(true);
+    });
+
+    // 银联确认（需要输入密码）
+    document.getElementById('unionConfirmBtn').addEventListener('click', async function() {
+      const pwd = document.getElementById('unionPayPwd').value;
+      document.getElementById('unionPayModal').style.display = 'none';
+      document.getElementById('paymentBackdrop').style.display = 'none';
+      if (!pwd) { alert('请输入银行卡密码'); return; }
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+      if (!loginUser || !window.currentBooking) { alert('当前支付上下文丢失，请重试'); return; }
+      const price = parseFloat(window.currentBooking.price || window.currentBooking.secondPrice || 0);
+      const __ps3 = document.getElementById('booking_passenger_select');
+      const __sel3 = __ps3 && __ps3.options[__ps3.selectedIndex];
+      const __p_name3 = __sel3 ? (__sel3.dataset.name || '') : '';
+      const __p_id3 = __sel3 ? (__sel3.dataset.id || '') : '';
+      const __p_phone3 = __sel3 ? (__sel3.dataset.phone || '') : '';
+      const payload = {
+        userId: loginUser.userId,
+        start_city: window.currentBooking.start,
+        end_city: window.currentBooking.end,
+        train_no: window.currentBooking.trainNo,
+        price: price,
+        depart_time: document.getElementById('trainDate').value + ' ' + window.currentBooking.depart,
+        seat_type: (window.currentBooking.seatType || ''),
+        payment_method: 'unionpay',
+        status: 'paid',
+        passenger_name: __p_name3,
+        passenger_id_card: __p_id3,
+        passenger_phone: __p_phone3
+      };
+      try {
+        const resp = await fetch('http://localhost:3000/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const res = await resp.json();
+        if (res.code === 0) {
+          alert('银联支付成功，订单已创建：' + res.data.order_no);
+          window.currentBooking = null; showBookingModal(false);
+          if (typeof loadOrders === 'function') loadOrders();
+        } else { alert('创建订单失败：' + (res.msg || '未知错误')); }
+      } catch (err) { console.error(err); alert('请求失败，请检查后端服务'); }
+    });
+
+
+    // ===== 2. 订单查询页面逻辑 =====
+    const orderSearchBtn = document.getElementById('orderSearchBtn');
+    const orderList = document.getElementById('orderList');
+    const orderEmptyState = document.getElementById('orderEmptyState');
+
+    // 本地时间格式化：把 ISO/UTC 时间转换为本地 `YYYY-MM-DD HH:mm`，解析失败则返回原字符串
+    function formatLocalDateTime(dt) {
+      try {
+        if (!dt) return '';
+        const d = new Date(dt);
+        if (isNaN(d.getTime())) return String(dt);
+        const pad = n => String(n).padStart(2,'0');
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      } catch (e) { return String(dt || ''); }
+    }
+
+    // 从后端加载订单（可按 userId 过滤）
+    async function loadOrders() {
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser')) || {};
+      const userId = loginUser.userId;
+      orderEmptyState.style.display = 'none';
+      // 清空原有列表
+      const existingOrderItems = document.querySelectorAll('.order-item');
+      existingOrderItems.forEach(item => item.remove());
+
+      try {
+        const url = userId ? `http://localhost:3000/api/orders?userId=${userId}` : 'http://localhost:3000/api/orders';
+        const resp = await fetch(url);
+        if (!resp.ok) { console.error('加载订单 HTTP 错误', resp.status, resp.statusText); orderEmptyState.textContent = '加载订单失败：HTTP ' + resp.status; orderEmptyState.style.display = 'block'; return; }
+        const result = await resp.json();
+        if (result.code !== 0) {
+          orderEmptyState.textContent = '查询订单失败：' + (result.msg || '未知错误');
+          orderEmptyState.style.display = 'block';
+          return;
+        }
+        const orders = result.data || [];
+        // 判断订单是否可改签：支付状态且未出发。增强时间解析容错与状态大小写兼容。
+        function orderCanReschedule(o) {
+          try {
+            const status = String(o.status || '').trim().toLowerCase();
+            if (status !== 'paid') return false;
+            if (!o.depart_time) return true;
+            let dtStr = String(o.depart_time || '');
+            // 尝试把常见格式转成 ISO
+            if (dtStr.indexOf(' ') !== -1 && dtStr.indexOf('T') === -1) dtStr = dtStr.replace(' ', 'T');
+            // 若没有时分秒，尝试补全
+            if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dtStr)) dtStr = dtStr + ':00';
+            let d = new Date(dtStr);
+            if (isNaN(d.getTime())) {
+              // 最后降级：尝试直接用 Date 构造（某些浏览器解析不同）
+              d = new Date(o.depart_time);
+            }
+            if (isNaN(d.getTime())) return true; // 若无法解析，保守允许改签以便用户操作
+            return d.getTime() > Date.now();
+          } catch (e) { return true; }
+        }
+        // 根据 orderDate 输入过滤（优先使用 created_at，回退到 depart_time）
+        const selectedDate = (document.getElementById('orderDate') || {}).value || '';
+        const selectedStatus = (document.getElementById('orderStatus') || {}).value || 'all';
+        const orderNoQuery = ((document.getElementById('orderNo') || {}).value || '').trim();
+        let filtered = orders;
+        if (selectedDate) {
+          filtered = orders.filter(o => {
+            try {
+              if (o.created_at) {
+                const cd = new Date(o.created_at);
+                if (!isNaN(cd)) {
+                  const pad = n => String(n).padStart(2,'0');
+                  const s = `${cd.getFullYear()}-${pad(cd.getMonth()+1)}-${pad(cd.getDate())}`;
+                  if (s === selectedDate) return true;
+                }
+              }
+              if (o.depart_time) {
+                const dd = new Date(o.depart_time);
+                if (!isNaN(dd)) {
+                  const pad = n => String(n).padStart(2,'0');
+                  const s = `${dd.getFullYear()}-${pad(dd.getMonth()+1)}-${pad(dd.getDate())}`;
+                  if (s === selectedDate) return true;
+                } else {
+                  // fallback to string split if not parseable
+                  const dt = String(o.depart_time).split(' ')[0];
+                  if (dt === selectedDate) return true;
+                }
+              }
+            } catch (e) {}
+            return false;
+          });
+        }
+        // 按状态过滤（如果选择了具体状态）
+        if (selectedStatus && selectedStatus !== 'all') {
+          filtered = filtered.filter(o => String(o.status || '').toLowerCase() === String(selectedStatus || '').toLowerCase());
+        }
+        // 按订单号模糊匹配
+        if (orderNoQuery) {
+          filtered = filtered.filter(o => (o.order_no || '').indexOf(orderNoQuery) !== -1);
+        }
+        // 缓存最近加载的订单，供详情界面使用
+        window._lastOrders = filtered;
+        if (filtered.length === 0) {
+          orderEmptyState.textContent = '暂无订单记录';
+          orderEmptyState.style.display = 'block';
+          return;
+        }
+        // 渲染订单
+        filtered.forEach(o => {
+          const orderItem = document.createElement('div');
+          orderItem.className = 'order-item';
+          const isReschedulable = orderCanReschedule(o);
+          orderItem.innerHTML = `
+            <div>${o.order_no}</div>
+            <div>${o.train_no || ''} ${o.start_city}→${o.end_city}</div>
+            <div>${formatLocalDateTime(o.depart_time) || ''}</div>
+            <div>¥${Number(o.price).toFixed(2)}</div>
+            <div class="order-status">${o.status}</div>
+            <div>
+              <button class="order-btn">详情</button>
+              ${isReschedulable ? '<button class="order-btn reschedule-btn" style="margin-left:6px;">改签</button>' : ''}
+            </div>
+          `;
+          orderList.appendChild(orderItem);
+        });
+        // 订单按钮事件：打开详情界面（排除改签按钮）
+        document.querySelectorAll('.order-item .order-btn').forEach(btn => {
+          if (btn.classList.contains('reschedule-btn')) return;
+          btn.addEventListener('click', function() {
+            const orderNo = this.closest('.order-item').querySelector('div:first-child').textContent;
+            showOrderDetail(orderNo);
+          });
+        });
+        // 绑定改签按钮事件（如果存在）
+        if (typeof bindRescheduleButtons === 'function') bindRescheduleButtons();
+      } catch (err) {
+        console.error(err);
+        orderEmptyState.textContent = '加载订单失败，请检查后端服务';
+        orderEmptyState.style.display = 'block';
+      }
+    }
+
+    orderSearchBtn.addEventListener('click', loadOrders);
+    // 状态下拉改变时自动重载（即时筛选）
+    const orderStatusSelect = document.getElementById('orderStatus');
+    if (orderStatusSelect) orderStatusSelect.addEventListener('change', loadOrders);
+    // ===== 改签功能逻辑 =====
+    const rescheduleModal = document.getElementById('rescheduleModal');
+    const resOldNoEl = document.getElementById('res_old_order_no');
+    const resNewPriceInput = document.getElementById('res_new_price');
+    const resNewDepartInput = document.getElementById('res_new_depart');
+    const resNewTrainList = document.getElementById('res_new_train_list');
+    const resNewSeatInput = document.getElementById('res_new_seat');
+    const resDiffDisplay = document.getElementById('res_diff_display');
+    const resCancelBtn = document.getElementById('resCancelBtn');
+    const resConfirmBtn = document.getElementById('resConfirmBtn');
+    let _res_currentOrder = null;
+
+    function showRescheduleModal(order) {
+      _res_currentOrder = order;
+      if (!rescheduleModal) return;
+      resOldNoEl.textContent = order.order_no || '';
+      // 填充可选车次（同路由）并尝试默认选中原车次
+      try { populateRescheduleTrainOptions(order); } catch(e) { console.error('填充改签车次失败', e); }
+      // 如果后端有 depart_time 可转为 datetime-local 格式
+      try {
+        if (order.depart_time) {
+          const d = new Date(order.depart_time);
+          const pad = n => String(n).padStart(2,'0');
+          const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          resNewDepartInput.value = local;
+        } else resNewDepartInput.value = '';
+      } catch(e){ resNewDepartInput.value = ''; }
+      resNewPriceInput.value = Number(order.price || 0).toFixed(2);
+      resNewSeatInput.value = order.seat_type || '';
+      updateResDiff();
+      rescheduleModal.style.display = 'flex';
+    }
+
+    function hideRescheduleModal(){ if (rescheduleModal) rescheduleModal.style.display = 'none'; _res_currentOrder = null; }
+
+    function updateResDiff(){
+      try {
+        const oldPrice = Number((_res_currentOrder && _res_currentOrder.price) || 0);
+        const newPrice = Number(resNewPriceInput.value || 0);
+        const diff = (newPrice - oldPrice);
+        if (diff > 0) { resDiffDisplay.textContent = `差价：¥${diff.toFixed(2)}（需补差价）`; resDiffDisplay.style.color = '#d92121'; }
+        else if (diff < 0) { resDiffDisplay.textContent = `退差：¥${Math.abs(diff).toFixed(2)}（可原路退回）`; resDiffDisplay.style.color = '#1976d2'; }
+        else { resDiffDisplay.textContent = '差价：¥0.00（无需补差）'; resDiffDisplay.style.color = '#333'; }
+        return diff;
+      } catch(e){ resDiffDisplay.textContent = '差价：-'; return 0; }
+    }
+
+    // 填充改签候选车次为卡片列表（从本地 trainData 过滤同路由车次）
+    function populateRescheduleTrainOptions(order) {
+      try {
+        if (!resNewTrainList) return;
+        const routeStart = (order.start_city || order.start || '').toLowerCase();
+        const routeEnd = (order.end_city || order.end || '').toLowerCase();
+        resNewTrainList.innerHTML = '';
+        const list = (window.trainData || []).filter(t => {
+          try {
+            const a = (t.startStation||'').toLowerCase();
+            const b = (t.endStation||'').toLowerCase();
+            return (a.includes(routeStart) || routeStart.includes(a)) && (b.includes(routeEnd) || routeEnd.includes(b));
+          } catch(e) { return false; }
+        });
+        const makeCard = (t) => {
+          const card = document.createElement('div');
+          card.className = 'res-card';
+          card.style.padding = '8px';
+          card.style.border = '1px solid #eee';
+          card.style.borderRadius = '6px';
+          card.style.cursor = 'pointer';
+          card.style.display = 'flex';
+          card.style.justifyContent = 'space-between';
+          card.style.alignItems = 'center';
+          const num = t.number || t.trainNo || '';
+          const p2 = t.secondSeatPrice || t.secondPrice || '';
+          const p1 = t.firstSeatPrice || t.firstPrice || '';
+          const left = document.createElement('div');
+          left.innerHTML = `<div style="font-weight:600">${num} ${t.startStation}→${t.endStation}</div><div style="font-size:12px;color:#666">发:${t.startTime}  时长:${t.duration}</div>`;
+          const right = document.createElement('div');
+          right.style.textAlign = 'right';
+          right.innerHTML = `<div style="font-weight:600">二等 ¥${p2}</div><div style="font-size:12px;color:#666">一等 ¥${p1}</div>`;
+          card.appendChild(left);
+          card.appendChild(right);
+          card.dataset.trainNo = num;
+          card.dataset.startTime = t.startTime || '';
+          card.dataset.secondPrice = p2;
+          card.dataset.firstPrice = p1;
+          card.dataset.firstAvail = (t.seatAvailability && (t.seatAvailability.first || t.seatAvailability.first === 0)) ? String(t.seatAvailability.first) : '';
+          card.addEventListener('click', function(){
+            // 取消其他选中
+            Array.from(resNewTrainList.querySelectorAll('.res-card.selected')).forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            try {
+              const tstart = (this.dataset.startTime || '').trim();
+              if (tstart && resNewDepartInput) {
+                let datePart = new Date();
+                try { if (_res_currentOrder && _res_currentOrder.depart_time) datePart = new Date(_res_currentOrder.depart_time); } catch(e) {}
+                const pad = n => String(n).padStart(2,'0');
+                const dstr = `${datePart.getFullYear()}-${pad(datePart.getMonth()+1)}-${pad(datePart.getDate())}`;
+                let tt = tstart;
+                if (/^\d{1,2}:\d{2}$/.test(tt)) tt += ':00';
+                resNewDepartInput.value = dstr + 'T' + tt;
+              }
+              if (resNewPriceInput) resNewPriceInput.value = (this.dataset.secondPrice || this.dataset.firstPrice || resNewPriceInput.value);
+              if (resNewSeatInput) resNewSeatInput.value = (this.dataset.firstAvail && Number(this.dataset.firstAvail) > 0) ? '一等座' : '二等座';
+              updateResDiff();
+            } catch(e){ console.error('res-card click handler error', e); }
+          });
+          return card;
+        };
+        if (list.length > 0) {
+          list.forEach(t => resNewTrainList.appendChild(makeCard(t)));
+          // 默认选择第一项
+          const first = resNewTrainList.querySelector('.res-card'); if (first) first.click();
+        } else {
+          // 无候选时显示原车次卡片
+          const placeholder = document.createElement('div');
+          placeholder.className = 'res-card'; placeholder.style.padding='8px'; placeholder.style.border='1px dashed #eee'; placeholder.style.borderRadius='6px';
+          placeholder.textContent = (order.train_no || '') + '（原车次，暂无同路可改签车次）';
+          placeholder.dataset.trainNo = order.train_no || '';
+          resNewTrainList.appendChild(placeholder);
+        }
+      } catch (e) { console.error('populateRescheduleTrainOptions error', e); }
+    }
+
+    if (resNewPriceInput) resNewPriceInput.addEventListener('input', updateResDiff);
+
+    if (resCancelBtn) resCancelBtn.addEventListener('click', function(){ hideRescheduleModal(); });
+
+    if (resConfirmBtn) resConfirmBtn.addEventListener('click', async function(){
+      if (!_res_currentOrder) return alert('当前订单信息缺失');
+      const diff = updateResDiff();
+      const confirmed = (diff > 0) ? confirm(`需补差价 ¥${diff.toFixed(2)}，确认支付并改签吗？`) : confirm('确认改签并创建新订单？');
+      if (!confirmed) return;
+      // 发起改签请求到后端；前端在此处假定已支付（若 diff>0，实际应集成支付流程）
+      try {
+        // 读取用户选中的卡片（若有）作为目标车次
+        let selectedTrainNo = _res_currentOrder.train_no || '';
+        try {
+          const selCard = document.querySelector('#res_new_train_list .res-card.selected');
+          if (selCard && selCard.dataset && selCard.dataset.trainNo) selectedTrainNo = selCard.dataset.trainNo;
+        } catch(e) { /* ignore */ }
+        const payload = {
+          old_order_no: _res_currentOrder.order_no,
+          userId: _res_currentOrder.user_id,
+          start_city: _res_currentOrder.start_city,
+          end_city: _res_currentOrder.end_city,
+          train_no: selectedTrainNo || (_res_currentOrder.train_no || ''),
+          price: Number(resNewPriceInput.value || 0),
+          depart_time: (resNewDepartInput.value ? (new Date(resNewDepartInput.value)).toISOString() : _res_currentOrder.depart_time || ''),
+          seat_type: resNewSeatInput.value || _res_currentOrder.seat_type || '',
+          status: 'paid'
+        };
+        const resp = await fetch('http://localhost:3000/api/orders/reschedule', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+        if (!resp.ok) { console.error('改签 HTTP 错误', resp.status); alert('改签失败：HTTP ' + resp.status); return; }
+        const result = await resp.json();
+        if (result.code === 0) {
+          alert('改签成功，新订单：' + (result.data && result.data.order_no));
+          hideRescheduleModal();
+          if (typeof loadOrders === 'function') loadOrders();
+        } else {
+          alert('改签失败：' + (result.msg || '未知错误'));
+        }
+      } catch (e) { console.error(e); alert('改签请求失败，请检查后端服务'); }
+    });
+
+    // 委托：为动态生成的改签按钮绑定事件（在每次渲染后调用）
+    function bindRescheduleButtons(){
+      document.querySelectorAll('.reschedule-btn').forEach(btn => {
+        btn.removeEventListener('click', btn._resHandler);
+        btn._resHandler = function(){
+          const orderNo = this.closest('.order-item').querySelector('div:first-child').textContent;
+          const orders = window._lastOrders || [];
+          const order = orders.find(x => x.order_no === orderNo) || null;
+          if (!order) return alert('未找到订单数据');
+          showRescheduleModal(order);
+        };
+        btn.addEventListener('click', btn._resHandler);
+      });
+    }
+
+
+    // ===== 3. 我的12306页面逻辑 =====
+    const userMenuItems = document.querySelectorAll('.user-menu-item');
+    const userPanels = document.querySelectorAll('.user-panel');
+    
+    // 侧边栏菜单切换
+    userMenuItems.forEach(item => {
+      item.addEventListener('click', function() {
+        userMenuItems.forEach(menu => menu.classList.remove('active'));
+        this.classList.add('active');
+        const targetPanel = this.getAttribute('data-menu') + '-panel';
+        userPanels.forEach(panel => {
+          panel.classList.remove('active');
+          if (panel.id === targetPanel) {
+            panel.classList.add('active');
+            // 滚动页面到该卡片（平滑滚动）
+            try {
+              document.getElementById(targetPanel).scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } catch (e) {
+              // 安全降级：如果失败则不影响功能
+            }
+            // 若切换到常用乘客面板，刷新列表（若函数存在）
+            if (targetPanel === 'passenger-panel' && typeof loadPassengers === 'function') {
+              loadPassengers();
+            }
+          }
+        });
+      });
+    });
+
+    // 添加乘客逻辑（使用弹窗并保存到后端）
+    const addPassengerBtn = document.getElementById('addPassengerBtn');
+    const passengerEmptyState = document.getElementById('passengerEmptyState');
+    const passengerListContent = document.getElementById('passengerListContent');
+    const passengerModal = document.getElementById('passengerModal');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalSaveBtn = document.getElementById('modalSaveBtn');
+
+    function showPassengerModal(show) {
+      passengerModal.style.display = show ? 'block' : 'none';
+    }
+
+    // 脱敏身份证：掩盖第4位到第7位（基于 1-indexed）
+    function maskId(id) {
+      if (!id) return '';
+      id = String(id);
+      // 标准情况：长度大于7，保留前3位，掩盖4-7位，保留第8位及以后
+      if (id.length > 7) {
+        return id.slice(0,3) + '****' + id.slice(7);
+      }
+      // 次优处理：长度在4~7之间，尽量掩盖第4位到末位（最多4位）
+      if (id.length >= 4) {
+        const visiblePrefix = id.slice(0,3);
+        const maskLen = Math.min(4, id.length - 3);
+        return visiblePrefix + '*'.repeat(maskLen) + id.slice(3 + maskLen);
+      }
+      return id;
+    }
+
+    addPassengerBtn.addEventListener('click', function() {
+      const currentUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+      if (!currentUser || !currentUser.userId) {
+        alert('请先登录后再添加常用乘车人');
+        window.location.href = './login.html';
+        return;
+      }
+      // 新增时确保为新增状态
+      editingPassengerId = null;
+      document.getElementById('modal_passenger_name').value = '';
+      document.getElementById('modal_passenger_idcard').value = '';
+      document.getElementById('modal_passenger_phone').value = '';
+      document.getElementById('modal_passenger_type').value = 'adult';
+      showPassengerModal(true);
+    });
+    modalCancelBtn.addEventListener('click', function() { editingPassengerId = null; showPassengerModal(false); });
+
+    // 保存乘客到后端
+    // 编辑状态 id（null 表示新增）
+    let editingPassengerId = null;
+
+    modalSaveBtn.addEventListener('click', async function() {
+      const name = document.getElementById('modal_passenger_name').value.trim();
+      const idcard = document.getElementById('modal_passenger_idcard').value.trim();
+      const phone = document.getElementById('modal_passenger_phone').value.trim();
+      const type = document.getElementById('modal_passenger_type').value;
+      const currentUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+      if (!currentUser) { alert('请先登录'); window.location.href = './login.html'; return; }
+      if (!name || !idcard) { alert('请填写乘客姓名和身份证号'); return; }
+
+      try {
+        let resp, result;
+        if (editingPassengerId) {
+          resp = await fetch(`http://localhost:3000/api/frequent_passengers/${editingPassengerId}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.userId, passenger_name: name, passenger_id_card: idcard, passenger_phone: phone, passenger_type: type })
+          });
+        } else {
+          resp = await fetch('http://localhost:3000/api/frequent_passengers', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.userId, passenger_name: name, passenger_id_card: idcard, passenger_phone: phone, passenger_type: type })
+          });
+        }
+        result = await resp.json();
+        if (result.code === 0) {
+          alert(editingPassengerId ? '更新常用乘客成功' : '添加常用乘客成功');
+          showPassengerModal(false);
+          // 清空 modal
+          document.getElementById('modal_passenger_name').value = '';
+          document.getElementById('modal_passenger_idcard').value = '';
+          document.getElementById('modal_passenger_phone').value = '';
+          document.getElementById('modal_passenger_type').value = 'adult';
+          editingPassengerId = null;
+          // 刷新列表
+          loadPassengers();
+        } else {
+          alert((editingPassengerId ? '更新' : '添加') + '失败：' + (result.msg || '未知错误'));
+        }
+      } catch (err) {
+        console.error(err);
+        alert('请求失败，请检查后端服务');
+      }
+    });
+
+    // 加载常用乘客列表
+    async function loadPassengers() {
+      const currentUser = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+      passengerEmptyState.style.display = 'none';
+      passengerListContent.innerHTML = '';
+      if (!currentUser || !currentUser.userId) {
+        passengerEmptyState.textContent = '请先登录以查看常用乘车人';
+        passengerEmptyState.style.display = 'block';
+        return;
+      }
+      try {
+        const url = `http://localhost:3000/api/frequent_passengers?userId=${currentUser.userId}`;
+        const resp = await fetch(url);
+        const result = await resp.json();
+        if (result.code !== 0) {
+          passengerEmptyState.textContent = '查询常用乘客失败';
+          passengerEmptyState.style.display = 'block';
+          return;
+        }
+        const list = result.data || [];
+        if (list.length === 0) {
+          passengerEmptyState.textContent = '暂无常用乘客，请添加';
+          passengerEmptyState.style.display = 'block';
+          return;
+        }
+        list.forEach(p => {
+          const passengerItem = document.createElement('div');
+          passengerItem.className = 'passenger-item';
+          passengerItem.innerHTML = `
+            <div>${p.passenger_name}</div>
+            <div>${maskId(p.passenger_id_card)}</div>
+            <div>${p.passenger_phone ? p.passenger_phone : ''}</div>
+            <div>${p.passenger_type === 'child' ? '小孩' : '成人'}</div>
+            <div><button class="order-btn" data-id="${p.id}" data-action="edit">编辑</button> <button class="order-btn" data-id="${p.id}" data-action="delete">删除</button></div>
+          `;
+          passengerListContent.appendChild(passengerItem);
+        });
+        // 绑定编辑/删除事件
+        passengerListContent.querySelectorAll('button[data-action]').forEach(btn => {
+          btn.addEventListener('click', async function() {
+            const id = this.dataset.id;
+            const action = this.dataset.action;
+            if (action === 'delete') {
+              if (!confirm('确定删除该常用乘客吗？')) return;
+              try {
+                const resp = await fetch(`http://localhost:3000/api/frequent_passengers/${id}`, { method: 'DELETE' });
+                const r = await resp.json();
+                if (r.code === 0) { loadPassengers(); } else { alert('删除失败：' + (r.msg || '未知错误')); }
+              } catch (err) { console.error(err); alert('删除请求失败'); }
+            } else if (action === 'edit') {
+              // 编辑：根据当前登录用户从后端拉取并填充数据
+              try {
+                const currentUser2 = JSON.parse(localStorage.getItem('12306_loginUser')) || null;
+                if (!currentUser2 || !currentUser2.userId) { alert('请先登录'); window.location.href = './login.html'; return; }
+                const resp2 = await fetch(`http://localhost:3000/api/frequent_passengers?userId=${currentUser2.userId}`);
+                const resj = await resp2.json();
+                if (resj.code === 0) {
+                  const rec = (resj.data || []).find(x => String(x.id) === String(id));
+                  if (rec) {
+                    document.getElementById('modal_passenger_name').value = rec.passenger_name || '';
+                    document.getElementById('modal_passenger_idcard').value = rec.passenger_id_card || '';
+                    document.getElementById('modal_passenger_phone').value = rec.passenger_phone || '';
+                    document.getElementById('modal_passenger_type').value = rec.passenger_type || 'adult';
+                    editingPassengerId = id;
+                    showPassengerModal(true);
+                  } else {
+                    alert('未找到该乘客信息');
+                  }
+                } else {
+                  alert('加载乘客信息失败：' + (resj.msg || '未知错误'));
+                }
+              } catch (err) { console.error(err); alert('加载乘客信息失败'); }
+            }
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        passengerEmptyState.textContent = '加载常用乘客失败，请检查后端服务';
+        passengerEmptyState.style.display = 'block';
+      }
+    }
+
+    // 在初次加载页面或切换到乘客面板时刷新
+    if (document.querySelector('.user-menu-item.active') && document.querySelector('.user-menu-item.active').getAttribute('data-menu') === 'passenger') {
+      loadPassengers();
+    }
+
+    // 账户安全：修改用户名与密码逻辑
+    const changeUsernameBtn = document.getElementById('changeUsernameBtn');
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+
+    if (changeUsernameBtn) {
+      changeUsernameBtn.addEventListener('click', async function() {
+        const currentUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+        if (!currentUser) { alert('请先登录'); window.location.href = './login.html'; return; }
+        const newName = prompt('请输入新的用户名：', currentUser.username || '');
+        if (!newName) return;
+        try {
+          const resp = await fetch('http://localhost:3000/api/user/update', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.userId, username: newName })
+          });
+          const result = await resp.json();
+          if (result.code === 0) {
+            alert('用户名已更新');
+            // 更新显示与 localStorage
+            document.getElementById('sidebarUserName').textContent = result.data.username;
+            const infoNameEl = document.getElementById('info_username');
+            if (infoNameEl) infoNameEl.textContent = result.data.username;
+            currentUser.username = result.data.username;
+            localStorage.setItem('12306_loginUser', JSON.stringify(currentUser));
+            // update logout display
+            const loginLink = document.getElementById('loginLink');
+            if (loginLink) loginLink.innerHTML = `${currentUser.username} <span style="color: #666; font-weight: normal;">|</span> <span id="logoutBtn" style="color: #d92121; cursor: pointer;">退出</span>`;
+          } else {
+            alert('更新失败：' + (result.msg || '未知错误'));
+          }
+        } catch (err) {
+          console.error(err);
+          alert('请求失败，请检查后端服务');
+        }
+      });
+    }
+
+    if (changePasswordBtn) {
+      changePasswordBtn.addEventListener('click', async function() {
+        const currentUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+        if (!currentUser) { alert('请先登录'); window.location.href = './login.html'; return; }
+        const newPwd = prompt('请输入新的密码：');
+        if (!newPwd) return;
+        const confirmPwd = prompt('请再次输入新的密码：');
+        if (newPwd !== confirmPwd) { alert('两次输入不一致'); return; }
+        try {
+          const resp = await fetch('http://localhost:3000/api/user/update', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: currentUser.userId, password: newPwd })
+          });
+          const result = await resp.json();
+          if (result.code === 0) {
+            alert('密码已更新');
+          } else {
+            alert('更新失败：' + (result.msg || '未知错误'));
+          }
+        } catch (err) {
+          console.error(err);
+          alert('请求失败，请检查后端服务');
+        }
+      });
+    }
+  </script>
+  <script>
+    // 身份认证保存逻辑
+    document.addEventListener('DOMContentLoaded', function() {
+      const verifyBtn = document.getElementById('verifyBtn');
+      const idPhone = document.getElementById('idPhone');
+      const idCard = document.getElementById('idCard');
+      const verifyStatus = document.getElementById('verifyStatus');
+
+      // 若已登录，尝试预填
+      const loginUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+      if (loginUser) {
+        if (loginUser.phone) idPhone.value = loginUser.phone;
+        if (loginUser.id_card) idCard.value = loginUser.id_card;
+        // 加载头像（如果存在）并同步小预览
+        try {
+          const avatarEl = document.getElementById('userAvatar');
+          const previewSmall = document.getElementById('avatarPreviewSmall');
+          if (loginUser.avatar) {
+            if (avatarEl) {
+              avatarEl.innerHTML = '';
+              const img = document.createElement('img'); img.src = loginUser.avatar; img.alt = 'avatar';
+              avatarEl.appendChild(img);
+            }
+            if (previewSmall) { previewSmall.innerHTML = ''; const s = document.createElement('img'); s.src = loginUser.avatar; s.alt = 'preview'; s.style.width='100%'; s.style.height='100%'; s.style.objectFit='cover'; previewSmall.appendChild(s); }
+          }
+        } catch(e) {}
+      }
+
+      verifyBtn.addEventListener('click', async function() {
+        const currentUser = JSON.parse(localStorage.getItem('12306_loginUser'));
+        if (!currentUser) {
+          alert('请先登录后再进行身份认证');
+          window.location.href = './login.html';
+          return;
+        }
+
+        const payload = {
+          userId: currentUser.userId,
+          phone: idPhone.value,
+          id_card: idCard.value
+        };
+
+        verifyStatus.textContent = '保存中...';
+
+        try {
+          const resp = await fetch('http://localhost:3000/api/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const result = await resp.json();
+          if (result.code === 0) {
+            verifyStatus.textContent = '认证信息已保存';
+            // 更新 localStorage 中的信息
+            currentUser.phone = payload.phone;
+            currentUser.id_card = payload.id_card;
+            localStorage.setItem('12306_loginUser', JSON.stringify(currentUser));
+            // 切换为已认证显示
+            try {
+              const verifyBlock = document.getElementById('verifyBlock');
+              const verifyDone = document.getElementById('verifyDone');
+              const verifiedInfo = document.getElementById('verifiedInfo');
+              if (verifyBlock) verifyBlock.style.display = 'none';
+              if (verifyDone) {
+                const maskedPhone = String(payload.phone).replace(/(\d{3})\d{4}(\d{4})/, '$1****$2');
+                const maskedId = maskId(payload.id_card);
+                verifiedInfo.textContent = `手机号 ${maskedPhone}，身份证 ${maskedId}`;
+                verifyDone.style.display = 'block';
+              }
+            } catch (e) {}
+          } else {
+            verifyStatus.textContent = '保存失败：' + (result.msg || '未知错误');
+            alert('保存失败：' + (result.msg || '未知错误'));
+          }
+        } catch (err) {
+          console.error(err);
+          verifyStatus.textContent = '保存失败，请检查后端服务';
+          alert('保存失败，请检查后端服务（http://localhost:3000）');
+        }
+      });
+      // 头像上传处理（本地保存为 dataURL）
+      (function(){
+        const input = document.getElementById('avatarInput');
+        const uploadBtn = document.getElementById('uploadAvatarBtn');
+        const removeBtn = document.getElementById('removeAvatarBtn');
+        const previewSmall = document.getElementById('avatarPreviewSmall');
+        const setAvatar = (dataUrl) => {
+          try {
+            const login = JSON.parse(localStorage.getItem('12306_loginUser')) || {};
+            login.avatar = dataUrl;
+            localStorage.setItem('12306_loginUser', JSON.stringify(login));
+            const avatarEl = document.getElementById('userAvatar'); if (avatarEl) {
+              avatarEl.innerHTML = '';
+              const img = document.createElement('img'); img.src = dataUrl; img.alt = 'avatar'; avatarEl.appendChild(img);
+            }
+            if (previewSmall) { previewSmall.innerHTML = ''; const s = document.createElement('img'); s.src = dataUrl; s.alt = 'preview'; s.style.width='100%'; s.style.height='100%'; s.style.objectFit='cover'; previewSmall.appendChild(s); }
+          } catch(e){ console.error('保存头像失败', e); }
+        };
+
+        const handleFile = (file) => {
+          if (!file) return alert('请选择图片文件');
+          if (!file.type.startsWith('image/')) return alert('请选择图片文件');
+          if (file.size > 2*1024*1024) return alert('文件过大，最大支持 2MB');
+          const reader = new FileReader();
+          reader.onload = function(e){ setAvatar(e.target.result); alert('头像已保存（仅保存在本地浏览器）'); };
+          reader.onerror = function(e){ console.error('读取文件失败', e); alert('读取文件失败'); };
+          reader.readAsDataURL(file);
+        };
+
+        if (uploadBtn && input) {
+          // 点击上传按钮时打开文件选择；真正处理在 input.change 中
+          uploadBtn.addEventListener('click', function(){ input.click(); });
+          input.addEventListener('change', function(){ const file = input.files && input.files[0]; if (file) handleFile(file); });
+        }
+        if (removeBtn) {
+          removeBtn.addEventListener('click', function(){
+            try {
+              const login = JSON.parse(localStorage.getItem('12306_loginUser')) || {};
+              delete login.avatar;
+              localStorage.setItem('12306_loginUser', JSON.stringify(login));
+              const avatarEl = document.getElementById('userAvatar'); if (avatarEl) { avatarEl.innerHTML = ''; }
+              if (previewSmall) previewSmall.innerHTML = '';
+              alert('头像已移除');
+            } catch(e){ console.error(e); }
+          });
+        }
+      })();
+    });
+  </script>
+</body>
+</html>
